@@ -1,0 +1,343 @@
+import InventoryTable, {
+  type InventoryRow,
+} from "@/components/inventory-table";
+
+// Sample records from the Bear Cognition reference screenshot.
+// The backend will supply calculated data later.
+const sampleRows: InventoryRow[] = [
+  {
+    item: "Blankets",
+    initialCount: 204,
+    initialValue: 1128.12,
+    itemsSubtracted: 3,
+    itemsAdded: 1,
+    currentCount: 202,
+    currentValue: 1117.06,
+  },
+  {
+    item: "Books",
+    initialCount: 18083,
+    initialValue: 13562.25,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 18082,
+    currentValue: 13561.50,
+  },
+  {
+    item: "Childrens Bottoms",
+    initialCount: 10996,
+    initialValue: 76972.00,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 10995,
+    currentValue: 76965.00,
+  },
+  {
+    item: "Childrens Dresses",
+    initialCount: 747,
+    initialValue: 7753.86,
+    itemsSubtracted: 1,
+    itemsAdded: 1,
+    currentCount: 747,
+    currentValue: 7753.86,
+  },
+  {
+    item: "Childrens Jackets",
+    initialCount: 1174,
+    initialValue: 24043.52,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 1173,
+    currentValue: 24023.04,
+  },
+  {
+    item: "Childrens Pajamas",
+    initialCount: 956,
+    initialValue: 5238.88,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 955,
+    currentValue: 5233.40,
+  },
+  {
+    item: "Childrens Shoes",
+    initialCount: 451,
+    initialValue: 3414.07,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 450,
+    currentValue: 3406.50,
+  },
+  {
+    item: "Childrens Socks",
+    initialCount: 567,
+    initialValue: 907.20,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 566,
+    currentValue: 905.60,
+  },
+  {
+    item: "Childrens Tops",
+    initialCount: 11403,
+    initialValue: 70128.45,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 11402,
+    currentValue: 70122.30,
+  },
+  {
+    item: "Childrens Underwear",
+    initialCount: 493,
+    initialValue: 1824.10,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 492,
+    currentValue: 1820.40,
+  },
+  {
+    item: "Diapers",
+    initialCount: 1205,
+    initialValue: 8736.25,
+    itemsSubtracted: 5,
+    itemsAdded: 1,
+    currentCount: 1201,
+    currentValue: 8707.25,
+  },
+  {
+    item: "Elementary School Bookbag & Supplies",
+    initialCount: 148,
+    initialValue: 6660.00,
+    itemsSubtracted: 5,
+    itemsAdded: 1,
+    currentCount: 144,
+    currentValue: 6480.00,
+  },
+  {
+    item: "Mens Bottoms",
+    initialCount: 1111,
+    initialValue: 9776.80,
+    itemsSubtracted: 3,
+    itemsAdded: 1,
+    currentCount: 1109,
+    currentValue: 9759.20,
+  },
+  {
+    item: "Mens Jackets",
+    initialCount: 247,
+    initialValue: 5352.49,
+    itemsSubtracted: 3,
+    itemsAdded: 1,
+    currentCount: 245,
+    currentValue: 5309.15,
+  },
+  {
+    item: "Mens Pajamas",
+    initialCount: 142,
+    initialValue: 969.86,
+    itemsSubtracted: 3,
+    itemsAdded: 1,
+    currentCount: 140,
+    currentValue: 956.20,
+  },
+  {
+    item: "Mens Shoes",
+    initialCount: 238,
+    initialValue: 4907.56,
+    itemsSubtracted: 3,
+    itemsAdded: 1,
+    currentCount: 236,
+    currentValue: 4866.32,
+  },
+  {
+    item: "Mens Socks",
+    initialCount: 476,
+    initialValue: 1428.00,
+    itemsSubtracted: 3,
+    itemsAdded: 1,
+    currentCount: 474,
+    currentValue: 1422.00,
+  },
+  {
+    item: "Mens Tops",
+    initialCount: 1531,
+    initialValue: 15493.72,
+    itemsSubtracted: 3,
+    itemsAdded: 1,
+    currentCount: 1529,
+    currentValue: 15473.48,
+  },
+  {
+    item: "Mens Underwear",
+    initialCount: 1238,
+    initialValue: 3255.94,
+    itemsSubtracted: 3,
+    itemsAdded: 1,
+    currentCount: 1236,
+    currentValue: 3250.68,
+  },
+  {
+    item: "Middle/High School Bookbag & Supplies",
+    initialCount: 66,
+    initialValue: 3616.80,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 65,
+    currentValue: 3562.00,
+  },
+  {
+    item: "Pull Ups",
+    initialCount: 53,
+    initialValue: 384.25,
+    itemsSubtracted: 5,
+    itemsAdded: 1,
+    currentCount: 49,
+    currentValue: 355.25,
+  },
+  {
+    item: "Stuffed Animals",
+    initialCount: 5948,
+    initialValue: 55019.00,
+    itemsSubtracted: 7,
+    itemsAdded: 1,
+    currentCount: 5942,
+    currentValue: 54963.50,
+  },
+  {
+    item: "Toiletry Kit 0-5",
+    initialCount: 198,
+    initialValue: 1346.40,
+    itemsSubtracted: 3,
+    itemsAdded: 1,
+    currentCount: 196,
+    currentValue: 1332.80,
+  },
+  {
+    item: "Toiletry Kit 6-11",
+    initialCount: 184,
+    initialValue: 1840.00,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 183,
+    currentValue: 1830.00,
+  },
+  {
+    item: "Toiletry Kit 12-18",
+    initialCount: 151,
+    initialValue: 1661.00,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 150,
+    currentValue: 1650.00,
+  },
+  {
+    item: "Wipes",
+    initialCount: 745,
+    initialValue: 1862.50,
+    itemsSubtracted: 5,
+    itemsAdded: 1,
+    currentCount: 741,
+    currentValue: 1852.50,
+  },
+  {
+    item: "Womens Bottoms",
+    initialCount: 1064,
+    initialValue: 9075.92,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 1063,
+    currentValue: 9067.39,
+  },
+  {
+    item: "Womens Dresses",
+    initialCount: 654,
+    initialValue: 10483.62,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 653,
+    currentValue: 10467.59,
+  },
+  {
+    item: "Womens Jackets",
+    initialCount: 249,
+    initialValue: 2614.50,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 248,
+    currentValue: 2604.00,
+  },
+  {
+    item: "Womens Pajamas",
+    initialCount: 220,
+    initialValue: 2310.00,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 219,
+    currentValue: 2299.50,
+  },
+  {
+    item: "Womens Shoes",
+    initialCount: 239,
+    initialValue: 4832.58,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 238,
+    currentValue: 4812.36,
+  },
+  {
+    item: "Womens Socks",
+    initialCount: 548,
+    initialValue: 739.80,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 547,
+    currentValue: 738.45,
+  },
+  {
+    item: "Womens Tops",
+    initialCount: 2117,
+    initialValue: 21424.04,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 2116,
+    currentValue: 21413.92,
+  },
+  {
+    item: "Womens Underwear",
+    initialCount: 604,
+    initialValue: 1902.60,
+    itemsSubtracted: 2,
+    itemsAdded: 1,
+    currentCount: 603,
+    currentValue: 1899.45,
+  },
+];
+
+export default function PreviewTablePage() {
+  return (
+    <main className="min-h-screen bg-muted/20 px-4 py-8 sm:px-8">
+      <div className="mx-auto max-w-7xl space-y-8">
+        <header>
+          <h1 className="text-2xl font-bold">Inventory Table Preview</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Temporary preview using sample data from the reference dashboard.
+          </p>
+        </header>
+
+        <section aria-labelledby="sample-heading" className="space-y-3">
+          <h2 id="sample-heading" className="text-lg font-bold">
+            With sample data
+          </h2>
+          <InventoryTable rows={sampleRows} />
+        </section>
+
+        <section aria-labelledby="empty-heading" className="space-y-3">
+          <h2 id="empty-heading" className="text-lg font-bold">
+            Empty state
+          </h2>
+          <InventoryTable rows={[]} />
+        </section>
+      </div>
+    </main>
+  );
+}
