@@ -2,8 +2,6 @@ import InventoryTable, {
   type InventoryRow,
 } from "@/components/inventory-table";
 
-// Sample records from the Bear Cognition reference screenshot.
-// The backend will supply calculated data later.
 const sampleRows: InventoryRow[] = [
   {
     item: "Blankets",

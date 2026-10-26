@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 
 export type InventoryRow = {
-  item: string;
+  item: string;git push -u origin KAN-8-inventory-table
   initialCount: number;
   initialValue: number;
   itemsAdded: number;
