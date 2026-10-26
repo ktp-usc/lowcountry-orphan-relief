@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 
 export type InventoryRow = {
-  item: string;git push -u origin KAN-8-inventory-table
+  item: string;
   initialCount: number;
   initialValue: number;
   itemsAdded: number;
@@ -60,9 +60,7 @@ export default function InventoryTable({ rows }: InventoryTableProps) {
                 key={heading}
                 scope="col"
                 className={`px-4 py-4 font-bold text-foreground ${
-                  index === 0
-                    ? "min-w-[280px] text-left"
-                    : "text-right"
+                  index === 0 ? "min-w-[280px] text-left" : "text-right"
                 } ${index === 5 ? "border-l" : ""}`}
               >
                 {heading}
@@ -78,9 +76,7 @@ export default function InventoryTable({ rows }: InventoryTableProps) {
                 colSpan={headings.length}
                 className="h-40 text-center"
               >
-                <p className="font-semibold">
-                  No inventory data available.
-                </p>
+                <p className="font-semibold">No inventory data available.</p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Inventory items will appear here when data is provided.
                 </p>
