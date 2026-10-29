@@ -313,28 +313,9 @@ const sampleRows: InventoryRow[] = [
 
 export default function PreviewTablePage() {
   return (
-    <main className="min-h-screen bg-muted/20 px-4 py-8 sm:px-8">
-      <div className="mx-auto max-w-7xl space-y-8">
-        <header>
-          <h1 className="text-2xl font-bold">Inventory Table Preview</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Temporary preview using sample data from the reference dashboard.
-          </p>
-        </header>
-
-        <section aria-labelledby="sample-heading" className="space-y-3">
-          <h2 id="sample-heading" className="text-lg font-bold">
-            With sample data
-          </h2>
-          <InventoryTable rows={sampleRows} />
-        </section>
-
-        <section aria-labelledby="empty-heading" className="space-y-3">
-          <h2 id="empty-heading" className="text-lg font-bold">
-            Empty state
-          </h2>
-          <InventoryTable rows={[]} />
-        </section>
+    <main className="min-h-screen bg-muted/20 p-4 sm:p-8">
+      <div className="mx-auto max-w-7xl">
+        <InventoryTable rows={sampleRows} />
       </div>
     </main>
   );

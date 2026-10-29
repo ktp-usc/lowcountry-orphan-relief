@@ -1,7 +1,6 @@
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -31,37 +30,27 @@ const quantity = new Intl.NumberFormat("en-US");
 
 const headings = [
   "Item",
-  "Initial Count",
-  "Initial Value",
-  "Quantity Subtracted",
-  "Quantity Added",
-  "Current Count",
-  "Current Value",
+  "Initial count",
+  "Initial value",
+  "Quantity sub",
+  "Quantity added",
+  "Current count",
+  "Current value",
 ];
 
 export default function InventoryTable({ rows }: InventoryTableProps) {
   return (
-    <section className="overflow-hidden rounded-lg border bg-background">
-      <header className="border-b px-4 py-5 sm:px-6">
-        <h2 className="text-xl font-bold">
-          Low Country Orphan Relief inventory
-        </h2>
-      </header>
-
-      <Table className="min-w-[1050px]">
-        <TableCaption className="pb-4">
-          Inventory quantities and estimated values in USD.
-        </TableCaption>
-
-        <TableHeader className="bg-muted">
-          <TableRow className="hover:bg-transparent">
+    <section className="overflow-hidden rounded border border-border bg-card">
+      <Table className="min-w-[1050px] border-collapse font-sans text-sm text-foreground">
+        <TableHeader className="bg-muted-foreground/10">
+          <TableRow className="border-b border-muted-foreground/40 hover:bg-transparent">
             {headings.map((heading, index) => (
               <TableHead
                 key={heading}
                 scope="col"
-                className={`px-4 py-4 font-bold text-foreground ${
+                className={`px-3 py-2.5 text-sm font-semibold tracking-normal text-foreground ${
                   index === 0 ? "min-w-[280px] text-left" : "text-right"
-                } ${index === 5 ? "border-l" : ""}`}
+                } ${index === 5 ? "border-l border-muted-foreground/20" : ""}`}
               >
                 {heading}
               </TableHead>
@@ -74,7 +63,7 @@ export default function InventoryTable({ rows }: InventoryTableProps) {
             <TableRow className="hover:bg-transparent">
               <TableCell
                 colSpan={headings.length}
-                className="h-40 text-center"
+                className="h-40 px-3 py-2.5 text-center"
               >
                 <p className="font-semibold">No inventory data available.</p>
                 <p className="mt-1 text-sm text-muted-foreground">
@@ -86,51 +75,35 @@ export default function InventoryTable({ rows }: InventoryTableProps) {
             rows.map((row) => (
               <TableRow
                 key={row.item}
-                className="even:bg-muted/30 hover:bg-muted/60"
+                className="even:bg-muted-foreground/5 hover:bg-transparent"
               >
-                <TableCell className="whitespace-normal px-4 py-3 font-bold">
+                <TableCell className="whitespace-normal px-3 py-2.5 font-normal">
                   {row.item}
                 </TableCell>
 
-                <TableCell className="px-4 text-right tabular-nums">
+                <TableCell className="px-3 py-2.5 text-right font-normal tabular-nums">
                   {quantity.format(row.initialCount)}
                 </TableCell>
 
-                <TableCell className="px-4 text-right tabular-nums">
+                <TableCell className="px-3 py-2.5 text-right font-normal tabular-nums">
                   {currency.format(row.initialValue)}
                 </TableCell>
 
-                <TableCell className="px-4 text-right tabular-nums">
-                  <span
-                    className={
-                      row.itemsSubtracted > 0
-                        ? "font-medium text-red-700 dark:text-red-400"
-                        : "text-muted-foreground"
-                    }
-                  >
-                    {row.itemsSubtracted > 0 ? "−" : ""}
-                    {quantity.format(row.itemsSubtracted)}
-                  </span>
+                <TableCell className="px-3 py-2.5 text-right font-normal tabular-nums">
+                  {row.itemsSubtracted > 0 ? "−" : ""}
+                  {quantity.format(row.itemsSubtracted)}
                 </TableCell>
 
-                <TableCell className="px-4 text-right tabular-nums">
-                  <span
-                    className={
-                      row.itemsAdded > 0
-                        ? "font-medium text-green-700 dark:text-green-400"
-                        : "text-muted-foreground"
-                    }
-                  >
-                    {row.itemsAdded > 0 ? "+" : ""}
-                    {quantity.format(row.itemsAdded)}
-                  </span>
+                <TableCell className="px-3 py-2.5 text-right font-normal tabular-nums">
+                  {row.itemsAdded > 0 ? "+" : ""}
+                  {quantity.format(row.itemsAdded)}
                 </TableCell>
 
-                <TableCell className="border-l bg-muted/20 px-4 text-right font-bold tabular-nums">
+                <TableCell className="border-l border-muted-foreground/20 px-3 py-2.5 text-right font-medium tabular-nums">
                   {quantity.format(row.currentCount)}
                 </TableCell>
 
-                <TableCell className="bg-muted/20 px-4 text-right font-bold tabular-nums">
+                <TableCell className="px-3 py-2.5 text-right font-medium tabular-nums">
                   {currency.format(row.currentValue)}
                 </TableCell>
               </TableRow>
