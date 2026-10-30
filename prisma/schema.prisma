@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Location {
+  LOWCOUNTRY
+  MIDLANDS
+}
+
+enum SourceType {
+  INVENTORY
+  REFERRAL
+}
+
+enum InventoryDirection {
+  IN
+  OUT
+}
+
+model Item {
+  id                  Int                 @id @default(autoincrement())
+  code                String              @unique
+  displayName         String
+  inventoryActivities InventoryActivity[]
+  startingInventories StartingInventory[]
+  valuations          ItemValuation[]
+}
+
+model SourceSubmission {
+  id                  Int                 @id @default(autoincrement())
+  jotformFormId        String
+  jotformSubmissionId  String
+  location            Location
+  sourceType          SourceType
+  submissionDate      DateTime            @db.Timestamptz(3)
+  inventoryActivities InventoryActivity[]
+
+  @@unique([jotformFormId, jotformSubmissionId])
+  @@index([location, submissionDate])
+}
+
+model InventoryActivity {
+  id                  Int                @id @default(autoincrement())
+  jotformFormId       String
+  jotformSubmissionId String
+  itemId              Int
+  /// Positive magnitude; direction determines whether stock is added or removed.
+  quantity            Int
+  direction           InventoryDirection
+  sourceSubmission    SourceSubmission   @relation(fields: [jotformFormId, jotformSubmissionId], references: [jotformFormId, jotformSubmissionId], onDelete: Restrict, onUpdate: Cascade)
+  item                Item               @relation(fields: [itemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([jotformFormId, jotformSubmissionId])
+  @@index([itemId])
+}
+
+model StartingInventory {
+  id               Int      @id @default(autoincrement())
+  itemId           Int
+  year             Int
+  location         Location
+  startingQuantity Int
+  item             Item     @relation(fields: [itemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([itemId, year, location])
+  @@index([location, year])
+}
+
+model ItemValuation {
+  id           Int     @id @default(autoincrement())
+  itemId       Int
+  year         Int
+  /// Estimated USD value per unit; stored as an exact decimal, not a float.
+  valuePerUnit Decimal @db.Decimal(12, 2)
+  item         Item    @relation(fields: [itemId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([itemId, year])
+}
