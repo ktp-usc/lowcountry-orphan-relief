@@ -17,7 +17,9 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "db:test": "prisma db execute --file prisma/tests/inventory-constraints.sql"
+    "db:test": "prisma db execute --file prisma/tests/inventory-constraints.sql",
+    "db:seed": "prisma db seed",
+    "db:seed:demo": "prisma db seed && prisma db execute --file prisma/seed-demo.sql"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",

@@ -99,8 +99,37 @@ while their inventory records exist.
 
 Current count is the starting count plus IN quantities minus OUT quantities
 for the selected reporting period and location. Valuations are shared across
-locations and selected by item and reporting year. This setup does not populate
-item codes, opening counts, valuations, or Jotform records.
+locations and selected by item and reporting year. Migrations create the schema;
+the optional seed commands below populate initial records.
+
+### Seeding
+
+After configuring `.env` and applying migrations, run `npm run db:seed` to insert
+15 starter item categories. Existing codes and display names are preserved.
+Review the codes in `prisma/seed.sql` when defining the normalizer's mapping.
+This command does not insert counts, valuations, submissions, or activities.
+
+For fictional fixtures in a development/test Neon branch, run
+`npm run db:seed:demo`. This first seeds the item catalogue, then runs
+`prisma/seed-demo.sql`. Demo data consists of two `DEMO_` items, four opening
+counts for 2026, two fictional unit valuations, and four `SEED_DEMO_` submissions
+with eight IN/OUT activity rows across Lowcountry and Midlands. These are not
+approved IRS values or real Jotform records.
+
+Both scripts use `ON CONFLICT DO NOTHING` to preserve existing records.
+Activities are inserted only for newly created demo submissions, so reruns
+cannot append duplicate movements. Each SQL script runs in its own transaction;
+if the demo step fails, its data rolls back but the earlier catalogue seed stays.
+The commands run only when explicitly invoked.
+
+Prisma runs `prisma/seed.sql` through its existing SQL execution command, using
+`DIRECT_URL` when set and falling back to `DATABASE_URL`. No separate TypeScript
+runner or new dependency is required. Keep `package.json` and `package-lock.json`
+on the same dependency versions; run `npm ci` for a clean checkout.
+
+If applying this SQL seed update over the earlier TypeScript seed bundle,
+remove the unused `prisma/seed.ts` and leave `inventory-seed.patch` out of the PR.
+That patch was only a transfer artifact and is not used by the application.
 
 ### Database checks
 
