@@ -11,6 +11,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "test:jotform": "node scripts/test-jotform.mjs",
+    "test:jotform:unit": "node --test tests/jotform-fetch.test.mjs",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
