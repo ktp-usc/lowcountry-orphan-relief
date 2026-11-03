@@ -2,18 +2,23 @@
 -- PostgreSQL sequences can still advance even though the rows are rolled back.
 BEGIN;
 
-CREATE FUNCTION pg_temp.expect_failure(statement TEXT, expected_state TEXT)
+CREATE FUNCTION pg_temp.expect_failure(
+    statement TEXT,
+    expected_state TEXT,
+    alternate_state TEXT DEFAULT NULL
+)
 RETURNS VOID LANGUAGE plpgsql AS $$
 BEGIN
     BEGIN
         EXECUTE statement;
     EXCEPTION WHEN OTHERS THEN
-        IF SQLSTATE = expected_state THEN
+        IF SQLSTATE = expected_state OR SQLSTATE = alternate_state THEN
             RETURN;
         END IF;
         RAISE;
     END;
-    RAISE EXCEPTION 'Expected SQLSTATE % for statement: %', expected_state, statement;
+    RAISE EXCEPTION 'Expected SQLSTATE % for statement: %',
+        concat_ws(' or ', expected_state, alternate_state), statement;
 END;
 $$;
 
@@ -103,10 +108,12 @@ BEGIN
         'INSERT INTO "ItemValuation" ("itemId", "year", "valuePerUnit") VALUES (%s, 2028, -0.01)', first_item), '23514');
 
     -- Inventory history must not be silently deleted with its item or source.
-    PERFORM pg_temp.expect_failure(format('DELETE FROM "Item" WHERE "id" = %s', first_item), '23503');
+    -- RESTRICT deletion reports 23001 on newer PostgreSQL and 23503 on older
+    -- versions. Allow both here; insertion checks above still require 23503.
+    PERFORM pg_temp.expect_failure(format('DELETE FROM "Item" WHERE "id" = %s', first_item), '23503', '23001');
     PERFORM pg_temp.expect_failure(format(
         'DELETE FROM "SourceSubmission" WHERE "jotformFormId" = %L AND "jotformSubmissionId" = %L',
-        prefix || '-form-a', prefix || '-shared'), '23503');
+        prefix || '-form-a', prefix || '-shared'), '23503', '23001');
 END;
 $$;
 

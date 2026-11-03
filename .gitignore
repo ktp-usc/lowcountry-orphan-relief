@@ -36,12 +36,9 @@ yarn-error.log*
 
 # Prisma Client is generated during install/build.
 /generated/prisma/
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
+/.seed-build/
+/.seed-build/
+/.seed-buiinfo
 next-env.d.ts
 
 # IntelliJ project files
