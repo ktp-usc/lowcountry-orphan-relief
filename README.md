@@ -104,32 +104,28 @@ the optional seed commands below populate initial records.
 
 ### Seeding
 
-After configuring `.env` and applying migrations, run `npm run db:seed` to insert
-15 starter item categories. Existing codes and display names are preserved.
-Review the codes in `prisma/seed.sql` when defining the normalizer's mapping.
-This command does not insert counts, valuations, submissions, or activities.
+Run `npm run db:seed` to seed the 35 real categories and exact prices from
+the supplied inventory-management policy table for reporting year 2026.
+Run `npm run db:seed:demo` to include fictional opening counts, submissions
+and movements for both locations using those same categories and valuations.
 
-For fictional fixtures in a development/test Neon branch, run
-`npm run db:seed:demo`. This first seeds the item catalogue, then runs
-`prisma/seed-demo.sql`. Demo data consists of two `DEMO_` items, four opening
-counts for 2026, two fictional unit valuations, and four `SEED_DEMO_` submissions
-with eight IN/OUT activity rows across Lowcountry and Midlands. These are not
-approved IRS values or real Jotform records.
+The implementation is TypeScript in `prisma/seed.ts`. Both commands use
+`DIRECT_URL` when set, otherwise `DATABASE_URL`. Repeated runs preserve
+item IDs and existing inventory history. Reference names and prices are
+updated to match the supplied table. The SQL migration and constraints remain.
 
-Both scripts use `ON CONFLICT DO NOTHING` to preserve existing records.
-Activities are inserted only for newly created demo submissions, so reruns
-cannot append duplicate movements. Each SQL script runs in its own transaction;
-if the demo step fails, its data rolls back but the earlier catalogue seed stays.
-The commands run only when explicitly invoked.
+Prices retain the source units: diapers and pull-ups are $7.25 per pack of 30.
+Unit and quantity metadata are retained in `prisma/seed-data.ts` for the
+future normalizer. The source has no visible effective year; 2026 is the
+chosen reporting year.
 
-Prisma runs `prisma/seed.sql` through its existing SQL execution command, using
-`DIRECT_URL` when set and falling back to `DATABASE_URL`. No separate TypeScript
-runner or new dependency is required. Keep `package.json` and `package-lock.json`
-on the same dependency versions; run `npm ci` for a clean checkout.
+`CHECK-KAN15.cmd` applies this replacement and runs the seed commands twice,
+checks the 35 valuations and demo fixtures, then runs constraints, lint and build.
+`npm run db:check:seed -- --demo` verifies seeded records on an existing
+development database. `npm run db:test:seed` provides the stricter integration
+test for an initially empty, migrated test database.
 
-If applying this SQL seed update over the earlier TypeScript seed bundle,
-remove the unused `prisma/seed.ts` and leave `inventory-seed.patch` out of the PR.
-That patch was only a transfer artifact and is not used by the application.
+See [KAN15-README.md](KAN15-README.md) for installation and review instructions.
 
 ### Database checks
 

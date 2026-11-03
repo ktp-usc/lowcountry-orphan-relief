@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": "..",
+    "outDir": "../.seed-build",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "rewriteRelativeImportExtensions": true,
+    "noEmitOnError": true,
+    "types": ["node"]
+  },
+  "include": ["seed.ts", "seed-data.ts", "../generated/prisma/**/*.ts"]
+}
