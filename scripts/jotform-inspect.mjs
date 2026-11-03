@@ -8,6 +8,46 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ENV_PATH = path.resolve(__dirname, '../.env');
 
+const TARGET_FORM_IDS = {
+  inventory: [
+    // TODO: add the exact numeric Jotform IDs for the inventory forms from the client meeting notes / Google Doc.
+    // Example: 1234567890, 1234567891
+  ],
+  referral: [
+    // TODO: add the exact numeric Jotform IDs for the referral forms from the client meeting notes / Google Doc.
+    // Example: 0987654321, 0987654322
+  ],
+};
+
+const SAFE_FIELD_IDS = {
+  inventory: new Set([
+    // TODO: add the exact field IDs that are approved for inventory reporting.
+    // This should include operational values like item names, quantities, counts, measurements, and other non-personal data.
+    // Keep out names, addresses, locations, ages, and any personal identifiers.
+    // Example: '10', '12', '22', '48'
+  ]),
+  referral: new Set([
+    // TODO: add the exact field IDs that are approved for referral reporting.
+    // This should be limited to non-sensitive business fields only.
+    // Example: '3', '8', '17', '28'
+  ]),
+};
+
+function parseArgs() {
+  const rawArgs = process.argv.slice(2);
+  let outputPath = null;
+
+  for (let i = 0; i < rawArgs.length; i += 1) {
+    const arg = rawArgs[i];
+    if (arg === '--output' || arg === '-o') {
+      outputPath = rawArgs[i + 1] ?? null;
+      i += 1;
+    }
+  }
+
+  return { outputPath };
+}
+
 function loadEnvFile() {
   if (process.env.JOTFORM_API_KEY) {
     return;
@@ -92,51 +132,42 @@ function normalizeText(value) {
   return String(value).trim();
 }
 
-function isSensitiveKey(key) {
-  const lowered = key.toLowerCase();
-  const patterns = [
-    'first', 'last', 'full', 'middle', 'name',
-    'email', 'phone', 'mobile', 'cell', 'address', 'street',
-    'city', 'state', 'zip', 'postal', 'country',
-    'dob', 'birth', 'gender', 'race', 'ethnicity',
-    'ssn', 'social', 'driver', 'license', 'passport',
-    'signature', 'ip', 'profile', 'contact', 'emergency',
-    'guardian', 'parent', 'family', 'notes', 'comments', 'message'
-  ];
-
-  return patterns.some((pattern) => lowered.includes(pattern));
-}
-
-function printRelevantSubmissionSummary(formLabel, submission) {
-  const answers = submission?.answers ?? {};
-  const filteredEntries = Object.entries(answers)
-    .filter(([key, value]) => {
-      const label = value?.text ?? value?.answer ?? '';
-      const fieldName = normalizeText(value?.name ?? key);
-      const fieldId = normalizeText(key);
-      const isSensitive = isSensitiveKey(fieldName) || isSensitiveKey(fieldId) || isSensitiveKey(String(label));
-      return !isSensitive && label !== '';
-    })
-    .map(([key, value]) => {
-      const fieldName = normalizeText(value?.name ?? key);
-      const answerValue = value?.answer ?? value?.text ?? value;
-      return { key, fieldName, answerValue };
-    });
-
-  console.log(`\nRecent ${formLabel} submission (relevant fields only):`);
-
-  if (!filteredEntries.length) {
-    console.log('No relevant fields found after filtering sensitive data.');
-    return;
-  }
-
-  for (const item of filteredEntries) {
-    console.log(`- ${item.fieldName || item.key}: ${JSON.stringify(item.answerValue)}`);
-  }
-}
-
 function sortFormsByName(forms) {
   return [...forms].sort((a, b) => a.title.localeCompare(b.title));
+}
+
+function normalizeNumericIdList(values = []) {
+  return values
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0);
+}
+
+function getTargetForms(forms) {
+  const inventoryIds = new Set(normalizeNumericIdList(TARGET_FORM_IDS.inventory));
+  const referralIds = new Set(normalizeNumericIdList(TARGET_FORM_IDS.referral));
+
+  if (!inventoryIds.size && !referralIds.size) {
+    return [];
+  }
+
+  return forms.filter((form) => {
+    const numericId = Number(form.id);
+    return inventoryIds.has(numericId) || referralIds.has(numericId);
+  });
+}
+
+function getAllowlistForForm(form) {
+  const id = Number(form.id);
+
+  if (TARGET_FORM_IDS.inventory.includes(id)) {
+    return SAFE_FIELD_IDS.inventory;
+  }
+
+  if (TARGET_FORM_IDS.referral.includes(id)) {
+    return SAFE_FIELD_IDS.referral;
+  }
+
+  return null;
 }
 
 async function fetchForms() {
@@ -152,11 +183,6 @@ async function fetchFormQuestions(formId) {
 async function fetchRecentSubmissions(formId, limit = 3) {
   const response = await jotformRequest(`/form/${formId}/submissions`, { limit });
   return Array.isArray(response?.content) ? response.content : [];
-}
-
-function printQuestionsForForm(form) {
-  console.log(`\nForm: ${form.title} (${form.id})`);
-  console.log('Field summary:');
 }
 
 function renderQuestionTable(questions) {
@@ -179,96 +205,163 @@ function renderQuestionTable(questions) {
   }
 }
 
-function printSubmissionSummary(submission, label) {
+function formatAnswerValue(value) {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  if (typeof value === 'object') {
+    const direct = value.answer ?? value.text ?? value.value;
+    if (direct !== undefined && direct !== null) {
+      return String(direct);
+    }
+
+    return JSON.stringify(value);
+  }
+
+  return String(value);
+}
+
+function getAllowedSubmissionEntries(submission, allowlist) {
   const answers = submission?.answers ?? {};
-  const printable = Object.entries(answers).map(([key, value]) => {
-    const answerValue = value?.answer ?? value?.text ?? value;
-    const fieldName = value?.name ?? key;
-    return { key, fieldName, answerValue };
-  });
 
-  console.log(`\n${label} recent submission:`);
-  if (!printable.length) {
-    console.log('No answers returned.');
-    return;
+  return Object.entries(answers)
+    .filter(([fieldId]) => allowlist.has(String(fieldId)))
+    .map(([fieldId, value]) => {
+      const fieldName = normalizeText(value?.name ?? fieldId);
+      const answerValue = formatAnswerValue(value?.answer ?? value?.text ?? value);
+      return { fieldId, fieldName, answerValue };
+    });
+}
+
+function printSampleSubmission(form, submission, allowlist) {
+  const lines = [];
+  const entries = getAllowedSubmissionEntries(submission, allowlist);
+
+  lines.push(`Submission ID: ${submission?.id ?? 'unknown'}`);
+
+  if (!entries.length) {
+    lines.push('No approved fields found for this submission.');
+  } else {
+    for (const item of entries) {
+      lines.push(`- ${item.fieldId} | ${item.fieldName}: ${item.answerValue}`);
+    }
   }
 
-  for (const item of printable) {
-    console.log(`- ${item.fieldName || item.key}: ${JSON.stringify(item.answerValue)}`);
+  console.log(`\n${form.title} sample submission:`);
+  for (const line of lines) {
+    console.log(line);
   }
+}
+
+function buildPasteableText(forms) {
+  const lines = [];
+
+  for (const form of forms) {
+    const allowlist = getAllowlistForForm(form);
+    lines.push(`FORM: ${form.title} (${form.id})`);
+    lines.push('Field list:');
+
+    const questions = form.questions ?? {};
+    const rows = Object.entries(questions)
+      .map(([fieldId, field]) => ({
+        fieldId,
+        name: normalizeText(field?.text ?? field?.name ?? fieldId),
+        type: normalizeText(field?.type ?? 'unknown'),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    if (!rows.length) {
+      lines.push('No field metadata returned.');
+    } else {
+      for (const row of rows) {
+        lines.push(`${row.fieldId} | ${row.type} | ${row.name}`);
+      }
+    }
+
+    lines.push('');
+
+    if (allowlist) {
+      lines.push('Approved field IDs for sanitized output:');
+      lines.push([...allowlist].join(', '));
+    }
+
+    lines.push('');
+  }
+
+  return lines.join('\n');
 }
 
 async function main() {
   ensureApiKey();
 
+  const { outputPath } = parseArgs();
   console.log('Connecting to Jotform API...');
 
   const forms = await fetchForms();
+  const targetForms = getTargetForms(forms);
 
-  printHeading('All available forms');
-  if (!forms.length) {
-    console.log('No forms found for this Jotform account.');
+  if (!targetForms.length) {
+    console.log('No target form IDs are configured yet.');
+    console.log('Update TARGET_FORM_IDS in this script with the exact numeric form IDs from the client notes document.');
+    console.log('Do not rely on title matching.');
     return;
   }
 
-  for (const form of forms) {
+  printHeading('Target forms');
+  for (const form of targetForms) {
     console.log(`${form.title} | ${form.id}`);
   }
 
-  const inventoryForms = forms.filter((form) => /inventory/i.test(form.title));
-  const referralForms = forms.filter((form) => /referral/i.test(form.title));
+  const formDetails = [];
 
-  printHeading('Likely inventory forms');
-  for (const form of inventoryForms) {
-    console.log(`${form.title} | ${form.id}`);
-  }
-
-  printHeading('Likely referral forms');
-  for (const form of referralForms) {
-    console.log(`${form.title} | ${form.id}`);
-  }
-
-  if (!inventoryForms.length && !referralForms.length) {
-    console.log('No forms with "inventory" or "referral" in the title were found. Check the output above for the exact form names and IDs.');
-    return;
-  }
-
-  for (const form of inventoryForms) {
+  for (const form of targetForms) {
     const questions = await fetchFormQuestions(form.id);
-    printHeading(`Inventory fields: ${form.title}`);
+    form.questions = questions;
+
+    printHeading(`Fields for ${form.title} (${form.id})`);
     renderQuestionTable(questions);
 
     const submissions = await fetchRecentSubmissions(form.id, 3);
-    printHeading(`Inventory recent submissions: ${form.title}`);
+    const allowlist = getAllowlistForForm(form);
+
+    printHeading(`Sample submissions for ${form.title} (${form.id})`);
+
+    if (!allowlist || !allowlist.size) {
+      console.log('No approved field IDs are configured for this form. Add the exact IDs before sharing output.');
+      continue;
+    }
+
     if (!submissions.length) {
       console.log('No submissions returned.');
       continue;
     }
 
     for (const submission of submissions) {
-      printSubmissionSummary(submission, form.title);
+      printSampleSubmission(form, submission, allowlist);
     }
+
+    formDetails.push(form);
   }
 
-  for (const form of referralForms) {
-    const questions = await fetchFormQuestions(form.id);
-    printHeading(`Referral fields: ${form.title}`);
-    renderQuestionTable(questions);
+  if (outputPath) {
+    const documentText = buildPasteableText(formDetails);
+    const fullOutputPath = path.resolve(process.cwd(), outputPath);
+    const targetDir = path.dirname(fullOutputPath);
 
-    const submissions = await fetchRecentSubmissions(form.id, 1);
-    if (!submissions.length) {
-      console.log('No submissions returned.');
-      continue;
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
     }
 
-    const recentSubmission = submissions[0];
-    printRelevantSubmissionSummary('referral', recentSubmission);
+    fs.writeFileSync(fullOutputPath, documentText, 'utf8');
+    console.log(`\nSanitized pasteable output saved to: ${fullOutputPath}`);
   }
 
   console.log('\nNext steps:');
-  console.log('1. Confirm the exact four relevant form IDs from the output above.');
-  console.log('2. Compare the recent inventory payloads with the inventory Google Sheet rows and verify the matching values.');
-  console.log('3. Update the shared Google doc with the final field IDs, names, and data types for both forms.');
+  console.log('1. Copy the exact field IDs from the output above into SAFE_FIELD_IDS for each target form.');
+  console.log('2. Keep all submission output limited to those approved IDs only.');
+  console.log('3. Exclude names, locations, ages, and other personal data before pasting anything into the shared Google Doc.');
+  console.log('4. If you want a text file for copy/paste, rerun with: node scripts/jotform-inspect.mjs --output jotform-output.txt');
 }
 
 main().catch((error) => {
@@ -276,4 +369,3 @@ main().catch((error) => {
   console.error(error.message);
   process.exit(1);
 });
-
