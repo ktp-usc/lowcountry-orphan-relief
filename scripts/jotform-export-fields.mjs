@@ -7,6 +7,18 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ENV_PATH = path.resolve(__dirname, '../.env');
+const REMOVED_FIELD_IDS = new Set([
+  '9',
+  '181',
+  '15',
+  '182',
+  '175',
+  '17',
+  '158',
+  '6',
+  '176',
+  '7',
+]);
 
 function loadEnvFile() {
   if (process.env.JOTFORM_API_KEY) {
@@ -108,6 +120,10 @@ function buildFieldRows(questionMap) {
   const rows = [];
 
   for (const [fieldId, field] of Object.entries(questionMap)) {
+    if (REMOVED_FIELD_IDS.has(String(fieldId))) {
+      continue;
+    }
+
     const name = normalizeText(field?.text ?? field?.name ?? fieldId);
     const type = normalizeText(field?.type ?? 'unknown');
     const required = field?.required ? 'yes' : 'no';
@@ -193,4 +209,3 @@ main().catch((error) => {
   console.error(error.message);
   process.exit(1);
 });
-

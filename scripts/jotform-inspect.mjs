@@ -10,29 +10,54 @@ const ENV_PATH = path.resolve(__dirname, '../.env');
 
 const TARGET_FORM_IDS = {
   inventory: [
-    // TODO: add the exact numeric Jotform IDs for the inventory forms from the client meeting notes / Google Doc.
-    // Example: 1234567890, 1234567891
-    // hi
+    // The team is reviewing exclusion-based filtering first.
+    // Exact form IDs can be added later if the project wants a stricter allowlist workflow.
   ],
   referral: [
-    // TODO: add the exact numeric Jotform IDs for the referral forms from the client meeting notes / Google Doc.
-    // Example: 0987654321, 0987654322
+    // The team is reviewing exclusion-based filtering first.
+    // Exact form IDs can be added later if the project wants a stricter allowlist workflow.
   ],
 };
 
 const SAFE_FIELD_IDS = {
   inventory: new Set([
-    // TODO: add the exact field IDs that are approved for inventory reporting.
-    // This should include operational values like item names, quantities, counts, measurements, and other non-personal data.
-    // Keep out names, addresses, locations, ages, and any personal identifiers.
-    // Example: '10', '12', '22', '48'
+    // Keep this empty for the review phase.
+    // The script currently defaults to showing all fields except the known removed sensitive IDs.
   ]),
   referral: new Set([
-    // TODO: add the exact field IDs that are approved for referral reporting.
-    // This should be limited to non-sensitive business fields only.
-    // Example: '3', '8', '17', '28'
+    // Keep this empty for the review phase.
+    // The script currently defaults to showing all fields except the known removed sensitive IDs.
   ]),
 };
+
+const EXCLUDED_FORM_IDS = new Set([
+  '261534987726067', // Funds Request Form
+]);
+
+const REMOVED_FIELD_IDS = new Set([
+  '9',
+  '181',
+  '15',
+  '182',
+  '175',
+  '17',
+  '158',
+  '6',
+  '176',
+  '7',
+]);
+
+function shouldSkipForm(form) {
+  return form && EXCLUDED_FORM_IDS.has(String(form.id));
+}
+
+function shouldSkipField(formId, fieldId) {
+  if (shouldSkipForm({ id: formId })) {
+    return true;
+  }
+
+  return REMOVED_FIELD_IDS.has(String(fieldId));
+}
 
 function parseArgs() {
   const rawArgs = process.argv.slice(2);
@@ -144,22 +169,21 @@ function normalizeNumericIdList(values = []) {
 }
 
 function getTargetForms(forms) {
-  const inventoryIds = new Set(normalizeNumericIdList(TARGET_FORM_IDS.inventory));
-  const referralIds = new Set(normalizeNumericIdList(TARGET_FORM_IDS.referral));
-
-  if (!inventoryIds.size && !referralIds.size) {
-    return [];
-  }
-
   return forms.filter((form) => {
-    const numericId = Number(form.id);
-    return inventoryIds.has(numericId) || referralIds.has(numericId);
+    if (shouldSkipForm(form)) {
+      return false;
+    }
+
+    return true;
   });
 }
 
 function getAllowlistForForm(form) {
-  const id = Number(form.id);
+  if (!form || !form.id) {
+    return null;
+  }
 
+  const id = Number(form.id);
   if (TARGET_FORM_IDS.inventory.includes(id)) {
     return SAFE_FIELD_IDS.inventory;
   }
@@ -186,8 +210,9 @@ async function fetchRecentSubmissions(formId, limit = 3) {
   return Array.isArray(response?.content) ? response.content : [];
 }
 
-function renderQuestionTable(questions) {
+function renderQuestionTable(form, questions) {
   const rows = Object.entries(questions)
+    .filter(([fieldId]) => !shouldSkipField(form.id, fieldId))
     .map(([fieldId, field]) => ({
       fieldId,
       name: normalizeText(field?.text ?? field?.name ?? fieldId),
@@ -196,7 +221,7 @@ function renderQuestionTable(questions) {
     .sort((a, b) => a.name.localeCompare(b.name));
 
   if (!rows.length) {
-    console.log('No field metadata returned.');
+    console.log('No field metadata returned after removing excluded IDs.');
     return;
   }
 
@@ -223,11 +248,22 @@ function formatAnswerValue(value) {
   return String(value);
 }
 
-function getAllowedSubmissionEntries(submission, allowlist) {
+function getAllowedSubmissionEntries(form, submission, allowlist = null) {
   const answers = submission?.answers ?? {};
 
   return Object.entries(answers)
-    .filter(([fieldId]) => allowlist.has(String(fieldId)))
+    .filter(([fieldId]) => {
+      const idString = String(fieldId);
+      if (shouldSkipField(form.id, idString)) {
+        return false;
+      }
+
+      if (!allowlist) {
+        return true;
+      }
+
+      return allowlist.has(idString);
+    })
     .map(([fieldId, value]) => {
       const fieldName = normalizeText(value?.name ?? fieldId);
       const answerValue = formatAnswerValue(value?.answer ?? value?.text ?? value);
@@ -237,7 +273,7 @@ function getAllowedSubmissionEntries(submission, allowlist) {
 
 function printSampleSubmission(form, submission, allowlist) {
   const lines = [];
-  const entries = getAllowedSubmissionEntries(submission, allowlist);
+  const entries = getAllowedSubmissionEntries(form, submission, allowlist);
 
   lines.push(`Submission ID: ${submission?.id ?? 'unknown'}`);
 
@@ -259,12 +295,17 @@ function buildPasteableText(forms) {
   const lines = [];
 
   for (const form of forms) {
+    if (shouldSkipForm(form)) {
+      continue;
+    }
+
     const allowlist = getAllowlistForForm(form);
     lines.push(`FORM: ${form.title} (${form.id})`);
     lines.push('Field list:');
 
     const questions = form.questions ?? {};
     const rows = Object.entries(questions)
+      .filter(([fieldId]) => !shouldSkipField(form.id, fieldId))
       .map(([fieldId, field]) => ({
         fieldId,
         name: normalizeText(field?.text ?? field?.name ?? fieldId),
@@ -282,7 +323,7 @@ function buildPasteableText(forms) {
 
     lines.push('');
 
-    if (allowlist) {
+    if (allowlist && allowlist.size) {
       lines.push('Approved field IDs for sanitized output:');
       lines.push([...allowlist].join(', '));
     }
@@ -303,13 +344,11 @@ async function main() {
   const targetForms = getTargetForms(forms);
 
   if (!targetForms.length) {
-    console.log('No target form IDs are configured yet.');
-    console.log('Update TARGET_FORM_IDS in this script with the exact numeric form IDs from the client notes document.');
-    console.log('Do not rely on title matching.');
+    console.log('No forms are available in this Jotform account after excluding the funds request form.');
     return;
   }
 
-  printHeading('Target forms');
+  printHeading('Available forms');
   for (const form of targetForms) {
     console.log(`${form.title} | ${form.id}`);
   }
@@ -321,17 +360,10 @@ async function main() {
     form.questions = questions;
 
     printHeading(`Fields for ${form.title} (${form.id})`);
-    renderQuestionTable(questions);
+    renderQuestionTable(form, questions);
 
     const submissions = await fetchRecentSubmissions(form.id, 3);
-    const allowlist = getAllowlistForForm(form);
-
     printHeading(`Sample submissions for ${form.title} (${form.id})`);
-
-    if (!allowlist || !allowlist.size) {
-      console.log('No approved field IDs are configured for this form. Add the exact IDs before sharing output.');
-      continue;
-    }
 
     if (!submissions.length) {
       console.log('No submissions returned.');
@@ -339,7 +371,7 @@ async function main() {
     }
 
     for (const submission of submissions) {
-      printSampleSubmission(form, submission, allowlist);
+      printSampleSubmission(form, submission, getAllowlistForForm(form));
     }
 
     formDetails.push(form);
@@ -358,11 +390,10 @@ async function main() {
     console.log(`\nSanitized pasteable output saved to: ${fullOutputPath}`);
   }
 
-  console.log('\nNext steps:');
-  console.log('1. Copy the exact field IDs from the output above into SAFE_FIELD_IDS for each target form.');
-  console.log('2. Keep all submission output limited to those approved IDs only.');
-  console.log('3. Exclude names, locations, ages, and other personal data before pasting anything into the shared Google Doc.');
-  console.log('4. If you want a text file for copy/paste, rerun with: node scripts/jotform-inspect.mjs --output jotform-output.txt');
+  console.log('\nReview mode: all fields are shown except the configured excluded IDs.');
+  console.log('Excluded form IDs: ' + [...EXCLUDED_FORM_IDS].join(', '));
+  console.log('Excluded field IDs: ' + [...REMOVED_FIELD_IDS].join(', '));
+  console.log('This ensures the funds request form stays fully excluded while the rest of the data is reviewed by field ID.');
 }
 
 main().catch((error) => {
