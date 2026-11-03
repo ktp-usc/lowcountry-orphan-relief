@@ -1,49 +1,78 @@
+"use client";
+
+import { useState } from "react";
+
+import { DashboardFilters } from "@/components/DashboardFilters";
+import InventorySummary from "@/components/inventory-summary";
+import InventoryTable from "@/components/inventory-table";
+import { calculateRow } from "@/lib/inventory/calculate-row";
+import { sampleInputs } from "@/lib/inventory/sample-data";
+import { summarizeInventory } from "@/lib/inventory/summarize";
+
+const currency = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+});
+
+// Sample data -> row calculation (KAN-12) -> summary (KAN-13)
+const calculatedRows = sampleInputs.map(calculateRow);
+const summary = summarizeInventory(calculatedRows);
+
+const summaryMetrics = [
+  { id: "initial-count", label: "Initial count", value: summary.totalInitialCount },
+  { id: "incoming", label: "Items added", value: summary.totalItemsAdded },
+  { id: "outgoing", label: "Items distributed", value: summary.totalItemsSubtracted },
+  { id: "current-count", label: "Current count", value: summary.totalCurrentCount, emphasized: true },
+  { id: "current-value", label: "Current value", value: currency.format(summary.totalCurrentValue), emphasized: true },
+];
+
+// The table uses slightly different field names than the inventory library
+const tableRows = calculatedRows.map((row) => ({
+  item: row.itemName,
+  initialCount: row.initialCount,
+  initialValue: row.initialValue,
+  itemsSubtracted: row.quantitySub,
+  itemsAdded: row.quantityAdd,
+  currentCount: row.currentCount,
+  currentValue: row.currentValue,
+}));
 
 export default function Home() {
+  const [selectedYear, setSelectedYear] = useState(
+    String(new Date().getFullYear())
+  );
+  const [selectedLocation, setSelectedLocation] = useState("All Locations");
+
   return (
     <main className="min-h-screen bg-background px-6 py-8 md:px-10">
-      {/* Header */}
       <header className="mb-8">
         <h1 className="text-2xl font-semibold text-foreground">
           Lowcountry Orphan Relief Inventory
         </h1>
       </header>
 
-      {/* Location and year filters */}
       <section className="mb-6">
-        <div className="flex flex-wrap gap-6">
-          <div className="min-w-48">
-            <label className="mb-2 block text-sm font-medium text-foreground">
-              Location
-            </label>
-            <div className="rounded-md border border-input bg-muted px-4 py-2 text-sm text-muted-foreground">
-              Lowcountry
-            </div>
-          </div>
-
-          <div className="min-w-48">
-            <label className="mb-2 block text-sm font-medium text-foreground">
-              Year
-            </label>
-            <div className="rounded-md border border-input bg-muted px-4 py-2 text-sm text-muted-foreground">
-              Select year
-            </div>
-          </div>
-        </div>
+        <DashboardFilters
+          selectedYear={selectedYear}
+          selectedLocation={selectedLocation}
+          onYearChange={setSelectedYear}
+          onLocationChange={setSelectedLocation}
+        />
       </section>
 
-      {/* Annual inventory summary */}
-      <section className="mb-6 rounded-lg border border-border bg-card p-6">
-        <h2 className="text-lg font-semibold text-card-foreground">
-          Annual Inventory Summary
-        </h2>
+      <section className="mb-6">
+        <InventorySummary
+          title="Annual Inventory Summary"
+          year={Number(selectedYear)}
+          metrics={summaryMetrics}
+        />
       </section>
 
-      {/* Inventory table */}
-      <section className="w-full rounded-lg border border-border bg-card p-6">
-        <h2 className="mb-4 text-lg font-semibold text-card-foreground">
+      <section className="w-full">
+        <h2 className="mb-4 text-lg font-semibold text-foreground">
           Inventory
         </h2>
+        <InventoryTable rows={tableRows} />
       </section>
     </main>
   );

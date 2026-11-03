@@ -1,5 +1,4 @@
 "use client";
-import { useState } from "react";
 import {
   Select,
   SelectContent,
@@ -14,30 +13,28 @@ const years = Array.from({ length: 5 }, (_, index) =>
   String(currentYear - index)
 );
 
-const locations = [
-  "All Locations",
-  "Low Country",
-  "Midlands"
-  
-];
+const locations = ["All Locations", "Low Country", "Midlands"];
 
-export function DashboardFilters() {
-  const [selectedYear, setSelectedYear] = useState(String(currentYear));
-  const [selectedLocation, setSelectedLocation] =
-    useState("All Locations");
+type DashboardFiltersProps = {
+  selectedYear: string;
+  selectedLocation: string;
+  onYearChange: (year: string) => void;
+  onLocationChange: (location: string) => void;
+};
 
+export function DashboardFilters({
+  selectedYear,
+  selectedLocation,
+  onYearChange,
+  onLocationChange,
+}: DashboardFiltersProps) {
   return (
     <div className="flex flex-wrap items-end gap-4">
       {/* Year Filter */}
       <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium text-foreground">
-          Year
-        </label>
+        <label className="text-sm font-medium text-foreground">Year</label>
 
-        <Select
-          value={selectedYear}
-          onValueChange={setSelectedYear}
-        >
+        <Select value={selectedYear} onValueChange={onYearChange}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Select year" />
           </SelectTrigger>
@@ -54,14 +51,9 @@ export function DashboardFilters() {
 
       {/* Location Filter */}
       <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium text-foreground">
-          Location
-        </label>
+        <label className="text-sm font-medium text-foreground">Location</label>
 
-        <Select
-          value={selectedLocation}
-          onValueChange={setSelectedLocation}
-        >
+        <Select value={selectedLocation} onValueChange={onLocationChange}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Select location" />
           </SelectTrigger>
