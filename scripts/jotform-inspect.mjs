@@ -34,7 +34,7 @@ const EXCLUDED_FORM_IDS = new Set([
   '261534987726067', // Funds Request Form
 ]);
 
-const REMOVED_FIELD_IDS = new Set([
+const DEFAULT_REMOVED_FIELD_IDS = new Set([
   '9',
   '181',
   '15',
@@ -47,17 +47,38 @@ const REMOVED_FIELD_IDS = new Set([
   '7',
   '47',
   '179',
-    '174',
-    '10',
-    '14',
-    '16',
-    '18',
-    '48',
-    '54',
+  '174',
+  '10',
+  '14',
+  '16',
+  '18',
+  '48',
+  '54','12', '8',
 ]);
+
+// Add additional sensitive field IDs for a specific Jotform form here.
+// The key should be the exact Jotform form id as a string.
+const FORM_SPECIFIC_REMOVED_FIELD_IDS = {
+  // Example:
+  // '241893620632154': new Set(['10', '14', '16', '18', '48', '54']),
+};
 
 function shouldSkipForm(form) {
   return form && EXCLUDED_FORM_IDS.has(String(form.id));
+}
+
+function getRemovedFieldIdsForForm(formId) {
+  const normalizedFormId = String(formId ?? '');
+  const combined = new Set(DEFAULT_REMOVED_FIELD_IDS);
+
+  const formSpecific = FORM_SPECIFIC_REMOVED_FIELD_IDS[normalizedFormId];
+  if (formSpecific) {
+    for (const fieldId of formSpecific) {
+      combined.add(String(fieldId));
+    }
+  }
+
+  return combined;
 }
 
 function shouldSkipField(formId, fieldId) {
@@ -65,7 +86,7 @@ function shouldSkipField(formId, fieldId) {
     return true;
   }
 
-  return REMOVED_FIELD_IDS.has(String(fieldId));
+  return getRemovedFieldIdsForForm(formId).has(String(fieldId));
 }
 
 function parseArgs() {
@@ -295,22 +316,16 @@ function getAllowedSubmissionEntries(form, submission, allowlist = null) {
 }
 
 function printSampleSubmission(form, submission, allowlist) {
-  const lines = [];
   const entries = getAllowedSubmissionEntries(form, submission, allowlist);
 
-  lines.push(`Submission ID: ${submission?.id ?? 'unknown'}`);
-
   if (!entries.length) {
-    lines.push('No approved fields found for this submission.');
-  } else {
-    for (const item of entries) {
-      lines.push(`- ${item.fieldId} | ${item.fieldName}: ${item.answerValue}`);
-    }
+    return;
   }
 
   console.log(`\n${form.title} sample submission:`);
-  for (const line of lines) {
-    console.log(line);
+  console.log(`Submission ID: ${submission?.id ?? 'unknown'}`);
+  for (const item of entries) {
+    console.log(`- ${item.fieldId} | ${item.fieldName}: ${item.answerValue}`);
   }
 }
 
@@ -396,7 +411,16 @@ async function main() {
       continue;
     }
 
-    for (const submission of submissions) {
+    const visibleSubmissions = submissions.filter((submission) => {
+      return getAllowedSubmissionEntries(form, submission, allowlist).length > 0;
+    });
+
+    if (!visibleSubmissions.length) {
+      console.log('No visible submissions after filtering excluded fields.');
+      continue;
+    }
+
+    for (const submission of visibleSubmissions) {
       printSampleSubmission(form, submission, allowlist);
     }
   }
@@ -416,7 +440,9 @@ async function main() {
 
   console.log('\nReview mode: all fields are shown except the configured excluded IDs.');
   console.log('Excluded form IDs: ' + [...EXCLUDED_FORM_IDS].join(', '));
-  console.log('Excluded field IDs: ' + [...REMOVED_FIELD_IDS].join(', '));
+  console.log('Excluded field IDs: ' + [...DEFAULT_REMOVED_FIELD_IDS].join(', '));
+  const formSpecificSummary = Object.entries(FORM_SPECIFIC_REMOVED_FIELD_IDS).map(([formId, fieldIds]) => `${formId}:${[...fieldIds].join(',')}`);
+  console.log('Form-specific excluded field IDs: ' + (formSpecificSummary.length ? formSpecificSummary.join(' | ') : 'none'));
   console.log('This ensures the funds request form stays fully excluded while the rest of the data is reviewed by field ID.');
 }
 
