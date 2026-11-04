@@ -45,6 +45,15 @@ const REMOVED_FIELD_IDS = new Set([
   '6',
   '176',
   '7',
+  '47',
+  '179',
+    '174',
+    '10',
+    '14',
+    '16',
+    '18',
+    '48',
+    '54',
 ]);
 
 function shouldSkipForm(form) {
@@ -121,11 +130,10 @@ async function jotformRequest(endpoint, params = {}) {
     }
   }
 
-  url.searchParams.set('apiKey', process.env.JOTFORM_API_KEY);
-
   const response = await fetch(url, {
     headers: {
       Accept: 'application/json',
+      APIKEY: process.env.JOTFORM_API_KEY,
     },
   });
 
@@ -169,13 +177,7 @@ function normalizeNumericIdList(values = []) {
 }
 
 function getTargetForms(forms) {
-  return forms.filter((form) => {
-    if (shouldSkipForm(form)) {
-      return false;
-    }
-
-    return true;
-  });
+  return forms.filter((form) => !shouldSkipForm(form));
 }
 
 function getAllowlistForForm(form) {
@@ -196,8 +198,29 @@ function getAllowlistForForm(form) {
 }
 
 async function fetchForms() {
-  const response = await jotformRequest('/user/forms');
-  return sortFormsByName(Array.isArray(response?.content) ? response.content : []);
+  const limit = 100;
+  const forms = [];
+  let offset = 0;
+
+  while (true) {
+    const response = await jotformRequest('/user/forms', { limit, offset });
+    const page = Array.isArray(response?.content) ? response.content : [];
+    forms.push(...page);
+
+    const resultSet = response?.resultSet;
+    const pageLimit = Number(resultSet?.limit);
+    const pageCount = Number(resultSet?.count);
+    const effectiveLimit = Number.isFinite(pageLimit) && pageLimit > 0 ? pageLimit : limit;
+    const receivedCount = Number.isFinite(pageCount) ? pageCount : page.length;
+    if (receivedCount < effectiveLimit) {
+      break;
+    }
+
+    const pageOffset = Number(resultSet?.offset);
+    offset = (Number.isFinite(pageOffset) ? pageOffset : offset) + receivedCount;
+  }
+
+  return sortFormsByName(forms);
 }
 
 async function fetchFormQuestions(formId) {
@@ -343,14 +366,14 @@ async function main() {
   const forms = await fetchForms();
   const targetForms = getTargetForms(forms);
 
-  if (!targetForms.length) {
-    console.log('No forms are available in this Jotform account after excluding the funds request form.');
-    return;
-  }
-
   printHeading('Available forms');
   for (const form of targetForms) {
     console.log(`${form.title} | ${form.id}`);
+  }
+
+  if (!targetForms.length) {
+    console.log('No forms are available in this Jotform account after excluding the funds request form.');
+    return;
   }
 
   const formDetails = [];
@@ -358,9 +381,12 @@ async function main() {
   for (const form of targetForms) {
     const questions = await fetchFormQuestions(form.id);
     form.questions = questions;
+    formDetails.push(form);
 
     printHeading(`Fields for ${form.title} (${form.id})`);
     renderQuestionTable(form, questions);
+
+    const allowlist = getAllowlistForForm(form);
 
     const submissions = await fetchRecentSubmissions(form.id, 3);
     printHeading(`Sample submissions for ${form.title} (${form.id})`);
@@ -371,10 +397,8 @@ async function main() {
     }
 
     for (const submission of submissions) {
-      printSampleSubmission(form, submission, getAllowlistForForm(form));
+      printSampleSubmission(form, submission, allowlist);
     }
-
-    formDetails.push(form);
   }
 
   if (outputPath) {

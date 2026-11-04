@@ -67,10 +67,11 @@ async function jotformRequest(endpoint, params = {}) {
     }
   }
 
-  url.searchParams.set('apiKey', process.env.JOTFORM_API_KEY);
-
   const response = await fetch(url, {
-    headers: { Accept: 'application/json' },
+    headers: {
+      Accept: 'application/json',
+      APIKEY: process.env.JOTFORM_API_KEY,
+    },
   });
 
   const text = await response.text();
@@ -91,8 +92,29 @@ async function jotformRequest(endpoint, params = {}) {
 }
 
 async function fetchForms() {
-  const response = await jotformRequest('/user/forms');
-  return Array.isArray(response?.content) ? response.content : [];
+  const limit = 100;
+  const forms = [];
+  let offset = 0;
+
+  while (true) {
+    const response = await jotformRequest('/user/forms', { limit, offset });
+    const page = Array.isArray(response?.content) ? response.content : [];
+    forms.push(...page);
+
+    const resultSet = response?.resultSet;
+    const pageLimit = Number(resultSet?.limit);
+    const pageCount = Number(resultSet?.count);
+    const effectiveLimit = Number.isFinite(pageLimit) && pageLimit > 0 ? pageLimit : limit;
+    const receivedCount = Number.isFinite(pageCount) ? pageCount : page.length;
+    if (receivedCount < effectiveLimit) {
+      break;
+    }
+
+    const pageOffset = Number(resultSet?.offset);
+    offset = (Number.isFinite(pageOffset) ? pageOffset : offset) + receivedCount;
+  }
+
+  return forms;
 }
 
 async function fetchFormQuestions(formId) {
@@ -126,7 +148,7 @@ function buildFieldRows(questionMap) {
 
     const name = normalizeText(field?.text ?? field?.name ?? fieldId);
     const type = normalizeText(field?.type ?? 'unknown');
-    const required = field?.required ? 'yes' : 'no';
+    const required = field?.required === 'Yes' ? 'yes' : 'no';
     rows.push({
       fieldId,
       name,
