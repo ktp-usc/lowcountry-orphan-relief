@@ -34,6 +34,45 @@ node scripts/jotform-export-fields.mjs 1234567890 --output exports/lor-fields.cs
 
 The form ID is the numeric value at the end of the Jotform URL. Do not rely on form names or keyword matching.
 
+### Inventory normalization utility
+
+The project also includes a pure normalization helper at `lib/jotform/normalize-inventory.ts`.
+
+This utility converts a Jotform inventory submission object into:
+- normalized `SourceSubmission` metadata
+- a list of inventory activity rows with item code, quantity, and direction (`IN`)
+
+It does not hit the database or the Jotform API. It accepts:
+- a Jotform form ID
+- a submission object matching the Jotform API payload shape
+
+Then it maps the configured field IDs to item codes, filters out blank/zero/negative values, and returns the normalized result.
+
+#### Example usage
+```bash
+npx tsx -e "import { normalizeInventorySubmission, sampleInventorySubmissionLowcountry, sampleInventorySubmissionMidlands } from './lib/jotform/normalize-inventory.ts'; console.log(JSON.stringify({ lowcountry: normalizeInventorySubmission('240656204390048', sampleInventorySubmissionLowcountry), midlands: normalizeInventorySubmission('250054265404145', sampleInventorySubmissionMidlands) }, null, 2));"
+```
+
+#### What the function returns
+```ts
+{
+  submission: {
+    jotformFormId: string;
+    jotformSubmissionId: string;
+    location: 'LOWCOUNTRY' | 'MIDLANDS';
+    sourceType: 'INVENTORY';
+    submissionDate: Date;
+  },
+  inventoryActivities: [
+    {
+      itemCode: string;
+      quantity: number;
+      direction: 'IN';
+    }
+  ]
+}
+```
+
 ### What the script does
 - Reads the Jotform API key from `.env`
 - Lists all available forms and form IDs
