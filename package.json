@@ -21,6 +21,7 @@
     "db:seed": "prisma db seed",
     "db:seed:demo": "prisma db seed -- --demo",
     "db:test:seed": "node scripts/test-inventory-seed.mjs",
+    "db:test:inventory": "node scripts/test-inventory-query.mjs",
     "db:check:seed": "node scripts/check-inventory-seed.mjs",
     "check:inventory": "node scripts/check-inventory.mjs"
   },
@@ -31,7 +32,6 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
-    "cn": "^0.5.0",
     "lucide-react": "^0.575.0",
     "next": "16.4.3",
     "radix-ui": "^1.4.3",

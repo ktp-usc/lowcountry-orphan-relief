@@ -10,6 +10,7 @@ const checks = [
   ["db:generate"],
   ["db:deploy"],
   ["db:test:seed"],
+  ["db:test:inventory"],
   ["db:check:seed"],
   ["db:check:seed", "--", "--demo"],
   ["db:test"],

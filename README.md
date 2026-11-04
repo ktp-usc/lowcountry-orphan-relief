@@ -123,6 +123,9 @@ chosen reporting year.
 development database. `npm run db:test:seed` runs both seed modes repeatedly
 and verifies their records and repeatability on a migrated development database.
 It supports existing data and does not reset the database.
+`npm run db:test:inventory` verifies the year/location inventory query against
+the seeded demo records for both locations, including categories with no
+starting count or activity.
 
 Run `npm run check:inventory` to validate the schema, generate the client, apply
 all pending migrations, run seed tests and valuation checks, run database
