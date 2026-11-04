@@ -119,13 +119,18 @@ Unit and quantity metadata are retained in `prisma/seed-data.ts` for the
 future normalizer. The source has no visible effective year; 2026 is the
 chosen reporting year.
 
-`CHECK-KAN15.cmd` applies this replacement and runs the seed commands twice,
-checks the 35 valuations and demo fixtures, then runs constraints, lint and build.
 `npm run db:check:seed -- --demo` verifies seeded records on an existing
-development database. `npm run db:test:seed` provides the stricter integration
-test for an initially empty, migrated test database.
+development database. `npm run db:test:seed` runs both seed modes repeatedly
+and verifies their records and repeatability on a migrated development database.
+It supports existing data and does not reset the database.
 
-See [KAN15-README.md](KAN15-README.md) for installation and review instructions.
+Run `npm run check:inventory` to validate the schema, generate the client, apply
+all pending migrations, run seed tests and valuation checks, run database
+constraint checks, lint, and build. It runs the complete sequence twice on the
+same configured development/test database, then compares row counts and content
+fingerprints for all five inventory tables. Any change on the second pass
+fails the check. PostgreSQL sequence positions are excluded because rolled-back
+constraint fixtures and upserts can consume sequence values without adding rows.
 
 ### Database checks
 

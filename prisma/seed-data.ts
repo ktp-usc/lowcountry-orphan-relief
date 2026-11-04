@@ -8,9 +8,6 @@ export type ItemValuationSeed = {
   quantity: number;
 };
 
-export const valuationSource =
-  "https://drive.google.com/file/d/1b84C5IE-74xe2U8v57pnLEveAr1-_6LE/view";
-
 // Transcribed from the supplied "List of Counted Items & IRS Valuation" table,
 // page 3 of the inventory-management policy. The source has no visible year.
 // Prices apply to the source's Unit column. In particular, diapers and pull-ups
