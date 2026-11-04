@@ -18,7 +18,6 @@ const locations = [
   "All Locations",
   "Low Country",
   "Midlands"
-  
 ];
 
 export function DashboardFilters() {
