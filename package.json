@@ -13,6 +13,7 @@
     "lint": "eslint",
     "test:jotform": "node scripts/test-jotform.mjs",
     "test:jotform:unit": "node --test tests/jotform-fetch.test.mjs",
+    "test:referral": "node --test tests/normalize-referral.test.mjs",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
