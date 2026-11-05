@@ -46,11 +46,17 @@ It does not hit the database or the Jotform API. It accepts:
 - a Jotform form ID
 - a submission object matching the Jotform API payload shape
 
-Then it maps the configured field IDs to item codes, filters out blank/zero/negative values, and returns the normalized result.
+Then it maps the configured field IDs to item codes, filters out values that are not positive whole units, and returns the normalized result. A valid `createdAt`/`created_at` or `updatedAt`/`updated_at` timestamp is required; creation timestamps take precedence over update timestamps.
 
 #### Example usage
 ```bash
-npx tsx -e "import { normalizeInventorySubmission, sampleInventorySubmissionLowcountry, sampleInventorySubmissionMidlands } from './lib/jotform/normalize-inventory.ts'; console.log(JSON.stringify({ lowcountry: normalizeInventorySubmission('240656204390048', sampleInventorySubmissionLowcountry), midlands: normalizeInventorySubmission('250054265404145', sampleInventorySubmissionMidlands) }, null, 2));"
+(
+  set -e
+  tmpdir="$(mktemp -d)"
+  trap 'rm -r "$tmpdir"' EXIT
+  ./node_modules/.bin/tsc lib/jotform/normalize-inventory.ts --module commonjs --target es2020 --skipLibCheck --outDir "$tmpdir"
+  node -e "const { normalizeInventorySubmission, sampleInventorySubmissionLowcountry, sampleInventorySubmissionMidlands } = require(process.argv[1]); console.log(JSON.stringify({ lowcountry: normalizeInventorySubmission('240656204390048', sampleInventorySubmissionLowcountry), midlands: normalizeInventorySubmission('250054265404145', sampleInventorySubmissionMidlands) }, null, 2));" "$tmpdir/normalize-inventory.js"
+)
 ```
 
 #### What the function returns

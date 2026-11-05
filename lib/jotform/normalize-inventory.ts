@@ -30,7 +30,9 @@ type JotformAnswerValue = PrimitiveAnswer | {
 export type JotformSubmissionLike = {
   id?: string | number | null;
   createdAt?: string | Date | null;
+  created_at?: string | Date | null;
   updatedAt?: string | Date | null;
+  updated_at?: string | Date | null;
   answers?: Record<string, JotformAnswerValue>;
 };
 
@@ -121,7 +123,7 @@ function getInventoryFormConfig(formId: string | number): InventoryFormConfig {
 
 function toDate(value?: string | Date | null): Date {
   if (!value) {
-    return new Date();
+    throw new Error('A valid submission timestamp is required.');
   }
 
   const date = new Date(value);
@@ -129,7 +131,7 @@ function toDate(value?: string | Date | null): Date {
     return date;
   }
 
-  return new Date();
+  throw new Error('A valid submission timestamp is required.');
 }
 
 function extractAnswerValue(value: JotformAnswerValue): string | number | boolean | null {
@@ -186,7 +188,7 @@ export function normalizeInventorySubmission(
       continue;
     }
 
-    if (!Number.isFinite(quantity) || quantity <= 0) {
+    if (!Number.isInteger(quantity) || quantity <= 0) {
       continue;
     }
 
@@ -197,7 +199,7 @@ export function normalizeInventorySubmission(
 
     inventoryActivities.push({
       itemCode: normalizedItemCode,
-      quantity: Math.trunc(quantity),
+      quantity,
       direction: InventoryDirection.IN,
     });
   }
@@ -211,7 +213,9 @@ export function normalizeInventorySubmission(
       jotformSubmissionId: String(submissionId ?? '').trim() || 'unknown-submission-id',
       location: config.location,
       sourceType: SourceType.INVENTORY,
-      submissionDate: toDate(submission?.createdAt ?? submission?.updatedAt),
+      submissionDate: toDate(
+        submission?.createdAt ?? submission?.created_at ?? submission?.updatedAt ?? submission?.updated_at,
+      ),
     },
     inventoryActivities,
   };
