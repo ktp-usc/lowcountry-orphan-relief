@@ -162,6 +162,33 @@ on the same dependency versions; run `npm ci` for a clean checkout.
 If applying this SQL seed update over the earlier TypeScript seed bundle,
 remove the unused `prisma/seed.ts` and leave `inventory-seed.patch` out of the PR.
 That patch was only a transfer artifact and is not used by the application.
+Run `npm run db:seed` to seed the 35 real categories and exact prices from
+the supplied inventory-management policy table for reporting year 2026.
+Run `npm run db:seed:demo` to include fictional opening counts, submissions
+and movements for both locations using those same categories and valuations.
+
+The implementation is TypeScript in `prisma/seed.ts`. Both commands use
+`DIRECT_URL` when set, otherwise `DATABASE_URL`. Repeated runs preserve
+item IDs and existing inventory history. Reference names and prices are
+updated to match the supplied table. The SQL migration and constraints remain.
+
+Prices retain the source units: diapers and pull-ups are $7.25 per pack of 30.
+Unit and quantity metadata are retained in `prisma/seed-data.ts` for the
+future normalizer. The source has no visible effective year; 2026 is the
+chosen reporting year.
+
+`npm run db:check:seed -- --demo` verifies seeded records on an existing
+development database. `npm run db:test:seed` runs both seed modes repeatedly
+and verifies their records and repeatability on a migrated development database.
+It supports existing data and does not reset the database.
+
+Run `npm run check:inventory` to validate the schema, generate the client, apply
+all pending migrations, run seed tests and valuation checks, run database
+constraint checks, lint, and build. It runs the complete sequence twice on the
+same configured development/test database, then compares row counts and content
+fingerprints for all five inventory tables. Any change on the second pass
+fails the check. PostgreSQL sequence positions are excluded because rolled-back
+constraint fixtures and upserts can consume sequence values without adding rows.
 
 ### Database checks
 

@@ -1,61 +1,70 @@
 import "dotenv/config";
 import { parseArgs } from "node:util";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { Prisma, PrismaClient } from "../generated/prisma/client.js";
 import {
   InventoryDirection,
   Location,
-  Prisma,
-  PrismaClient,
   SourceType,
-} from "../generated/prisma/client";
+} from "../generated/prisma/enums.js";
+import { itemValuations } from "./seed-data.js";
 
-// Starter categories; match these codes to the normalizer's item mapping.
-const items = [
-  { code: "TOPS", displayName: "Tops" },
-  { code: "BOTTOMS", displayName: "Bottoms" },
-  { code: "JACKETS", displayName: "Jackets" },
-  { code: "DRESSES", displayName: "Dresses" },
-  { code: "PAJAMAS", displayName: "Pajamas" },
-  { code: "UNDERWEAR", displayName: "Underwear" },
-  { code: "SOCKS", displayName: "Socks" },
-  { code: "SHOES", displayName: "Shoes" },
-  { code: "BLANKETS", displayName: "Blankets" },
-  { code: "DIAPERS", displayName: "Diapers" },
-  { code: "PULL_UPS", displayName: "Pull-ups" },
-  { code: "WIPES", displayName: "Wipes" },
-  { code: "TOILETRIES", displayName: "Toiletries" },
-  { code: "SCHOOL_UNIFORM_TOPS", displayName: "School uniform tops" },
-  { code: "SCHOOL_UNIFORM_BOTTOMS", displayName: "School uniform bottoms" },
-] satisfies Prisma.ItemCreateManyInput[];
+// The reporting year to which this reference table is being applied. This is
+// not a claim that the source document was published in this year.
+const defaultReportingYear = 2026;
 
-// Fixed year and identifiers keep the optional fixtures stable across reruns.
-const demoYear = 2026;
+type SeededItem = { id: number; code: string };
 
-async function seedDemo(tx: Prisma.TransactionClient) {
-  const tops = await tx.item.upsert({
-    where: { code: "DEMO_TOPS" },
-    update: {},
-    create: { code: "DEMO_TOPS", displayName: "Demo tops" },
-  });
-  const bottoms = await tx.item.upsert({
-    where: { code: "DEMO_BOTTOMS" },
-    update: {},
-    create: { code: "DEMO_BOTTOMS", displayName: "Demo bottoms" },
-  });
-  const demoItems = [
-    { id: tops.id, valuePerUnit: new Prisma.Decimal("5.00") },
-    { id: bottoms.id, valuePerUnit: new Prisma.Decimal("7.50") },
-  ];
-
-  // These are fictional development values, not approved IRS valuations.
-  for (const item of demoItems) {
-    await tx.itemValuation.upsert({
-      where: { itemId_year: { itemId: item.id, year: demoYear } },
-      update: {},
-      create: { itemId: item.id, year: demoYear, valuePerUnit: item.valuePerUnit },
-    });
+function validateCatalogue() {
+  if (itemValuations.length === 0) {
+    throw new Error(
+      "The valuation catalogue is empty. No data was seeded.",
+    );
   }
+  const codes = new Set<string>();
+  for (const { code, displayName, valuePerUnit } of itemValuations) {
+    if (!code.trim() || !displayName.trim() || codes.has(code)) {
+      throw new Error("The valuation catalogue contains an empty code/name or a duplicate item code.");
+    }
+    if (!/^\d{1,10}\.\d{2}$/.test(valuePerUnit)) {
+      throw new Error(`Item ${code} must have a nonnegative USD value with two decimal places.`);
+    }
+    codes.add(code);
+  }
+}
 
+async function seedCatalogue(tx: Prisma.TransactionClient, year: number) {
+  const items: SeededItem[] = [];
+  for (const { code, displayName, valuePerUnit } of itemValuations) {
+    const item = await tx.item.upsert({
+      where: { code },
+      update: { displayName },
+      create: { code, displayName },
+    });
+    const amount = new Prisma.Decimal(valuePerUnit);
+    await tx.itemValuation.upsert({
+      where: { itemId_year: { itemId: item.id, year } },
+      update: { valuePerUnit: amount },
+      create: { itemId: item.id, year, valuePerUnit: amount },
+    });
+    items.push({ id: item.id, code: item.code });
+  }
+  return items;
+}
+
+async function seedDemo(
+  tx: Prisma.TransactionClient,
+  year: number,
+  catalogue: readonly SeededItem[],
+) {
+  // Demonstration counts use actual catalogue items and actual reference
+  // valuations. Only the counts, submissions and movements are fictional.
+  const demoItems: SeededItem[] = [];
+  for (const code of ["MENS_TOPS", "CHILDRENS_TOPS"]) {
+    const item = catalogue.find((entry) => entry.code === code);
+    if (!item) throw new Error(`The demo catalogue is missing ${code}.`);
+    demoItems.push(item);
+  }
   const locations = [
     { location: Location.LOWCOUNTRY, initial: [100, 80], incoming: [20, 10], outgoing: [5, 3] },
     { location: Location.MIDLANDS, initial: [60, 40], incoming: [12, 8], outgoing: [4, 2] },
@@ -67,14 +76,14 @@ async function seedDemo(tx: Prisma.TransactionClient) {
         where: {
           itemId_year_location: {
             itemId: item.id,
-            year: demoYear,
+            year,
             location: fixture.location,
           },
         },
         update: {},
         create: {
           itemId: item.id,
-          year: demoYear,
+          year,
           location: fixture.location,
           startingQuantity: fixture.initial[index],
         },
@@ -85,23 +94,21 @@ async function seedDemo(tx: Prisma.TransactionClient) {
       {
         direction: InventoryDirection.IN,
         sourceType: SourceType.INVENTORY,
-        submissionDate: new Date("2026-01-02T12:00:00.000Z"),
+        submissionDate: new Date(`${year}-01-02T12:00:00.000Z`),
         quantities: fixture.incoming,
       },
       {
         direction: InventoryDirection.OUT,
         sourceType: SourceType.REFERRAL,
-        submissionDate: new Date("2026-01-03T12:00:00.000Z"),
+        submissionDate: new Date(`${year}-01-03T12:00:00.000Z`),
         quantities: fixture.outgoing,
       },
     ];
 
     for (const movement of movements) {
-      const jotformFormId = `SEED_DEMO_${fixture.location}_${movement.sourceType}`;
-      const jotformSubmissionId = `SEED_DEMO_${demoYear}_${fixture.location}_${movement.direction}`;
-
-      // Nested creation is atomic. An existing source is left unchanged, so
-      // rerunning the seed cannot append duplicate activity rows.
+      // Separate identifiers from the superseded demo that used DEMO_ items.
+      const jotformFormId = `SEED_DEMO_IRS_${fixture.location}_${movement.sourceType}`;
+      const jotformSubmissionId = `SEED_DEMO_IRS_${year}_${fixture.location}_${movement.direction}`;
       await tx.sourceSubmission.upsert({
         where: { jotformFormId_jotformSubmissionId: { jotformFormId, jotformSubmissionId } },
         update: {},
@@ -126,25 +133,32 @@ async function seedDemo(tx: Prisma.TransactionClient) {
 
 async function main() {
   const { values } = parseArgs({
-    options: { demo: { type: "boolean", default: false } },
+    options: {
+      demo: { type: "boolean", default: false },
+      year: { type: "string", default: String(defaultReportingYear) },
+    },
   });
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error("Set DATABASE_URL in .env before running the seed command.");
+  if (!/^\d{4}$/.test(values.year!) || Number(values.year) < 1900) {
+    throw new Error("Use --year followed by a four-digit reporting year of 1900 or later.");
   }
+  const year = Number(values.year);
+  validateCatalogue();
 
+  // Match prisma.config.ts: direct connection first, pooled connection fallback.
+  const connectionString = process.env.DIRECT_URL?.trim() || process.env.DATABASE_URL?.trim();
+  if (!connectionString) {
+    throw new Error("Set DIRECT_URL or DATABASE_URL in .env before running the seed command.");
+  }
   const adapter = new PrismaPg({ connectionString, connectionTimeoutMillis: 10_000 });
   const prisma = new PrismaClient({ adapter });
-
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.item.createMany({ data: items, skipDuplicates: true });
-      if (values.demo) await seedDemo(tx);
-    }, { timeout: 30_000 });
-
-    console.log("Item catalogue seeded; existing records preserved.");
+      const catalogue = await seedCatalogue(tx, year);
+      if (values.demo) await seedDemo(tx, year, catalogue);
+    }, { timeout: 60_000 });
+    console.log(`Seeded ${itemValuations.length} reference categories and valuations for ${year}.`);
     if (values.demo) {
-      console.log(`Demo fixtures for ${demoYear} seeded for Lowcountry and Midlands.`);
+      console.log("Fictional opening counts, submissions and movements seeded for both locations.");
     }
   } finally {
     await prisma.$disconnect();

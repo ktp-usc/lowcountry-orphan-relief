@@ -5,7 +5,7 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
-    seed: "prisma db execute --file prisma/seed.sql",
+    seed: "node scripts/run-inventory-seed.mjs",
   },
   datasource: {
     // Generation works without credentials; database commands require a URL.
