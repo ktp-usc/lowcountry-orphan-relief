@@ -9,6 +9,7 @@ const checks = [
   ["db:validate"],
   ["db:generate"],
   ["db:deploy"],
+  ["test:inventory:unit"],
   ["db:test:seed"],
   ["db:test:inventory"],
   ["db:check:seed"],

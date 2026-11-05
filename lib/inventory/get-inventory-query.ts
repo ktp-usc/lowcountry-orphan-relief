@@ -1,5 +1,5 @@
-import type { PrismaClient } from "../../generated/prisma/client";
-import type { Location } from "../../generated/prisma/enums";
+import type { PrismaClient } from "../../generated/prisma/client.js";
+import type { Location } from "../../generated/prisma/enums.js";
 
 export type InventoryCalculationInput = {
   itemName: string;
@@ -11,6 +11,11 @@ export type InventoryCalculationInput = {
 
 type InventoryQueryClient = Pick<PrismaClient, "item">;
 
+/**
+ * Return every catalog item for a UTC reporting year and one location.
+ * Missing opening counts and activity become zero. An absent yearly valuation
+ * rejects the result so an incomplete inventory cannot appear complete.
+ */
 export async function queryInventoryRows(
   client: InventoryQueryClient,
   year: number,
@@ -19,11 +24,13 @@ export async function queryInventoryRows(
   if (!Number.isInteger(year) || year < 1900 || year > 9999) {
     throw new Error("Provide a reporting year between 1900 and 9999.");
   }
+  if (location !== "LOWCOUNTRY" && location !== "MIDLANDS") {
+    throw new Error("Provide location LOWCOUNTRY or MIDLANDS.");
+  }
 
   const yearStart = new Date(Date.UTC(year, 0, 1));
   const nextYearStart = new Date(Date.UTC(year + 1, 0, 1));
   const items = await client.item.findMany({
-    where: { valuations: { some: { year } } },
     select: {
       displayName: true,
       valuations: {

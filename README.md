@@ -124,8 +124,17 @@ development database. `npm run db:test:seed` runs both seed modes repeatedly
 and verifies their records and repeatability on a migrated development database.
 It supports existing data and does not reset the database.
 `npm run db:test:inventory` verifies the year/location inventory query against
-the seeded demo records for both locations, including categories with no
-starting count or activity.
+the seeded demo records for both locations. Transactional fixtures also check
+UTC year boundaries, multiple additions/subtractions, zero and missing opening
+counts, zero valuations and missing valuations; those fixtures are rolled back.
+`npm run test:inventory:unit` runs the query's offline fixture tests without a
+database. Both test commands compile the query and generated client first, so
+they run on every Node version supported by this project.
+
+`getInventory(year, location)` returns `itemName`, `initialCount`, `quantityAdd`,
+`quantitySub` and `valuePerUnit` for each item. An item without a valuation for the requested year causes
+an explicit error instead of being silently omitted. Missing opening counts and
+activity produce zero. The reporting year uses UTC boundaries.
 
 Run `npm run check:inventory` to validate the schema, generate the client, apply
 all pending migrations, run seed tests and valuation checks, run database
