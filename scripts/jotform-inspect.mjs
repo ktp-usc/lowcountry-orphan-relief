@@ -10,12 +10,12 @@ const ENV_PATH = path.resolve(__dirname, '../.env');
 
 const TARGET_FORM_IDS = {
   inventory: [
-    // The team is reviewing exclusion-based filtering first.
-    // Exact form IDs can be added later if the project wants a stricter allowlist workflow.
+    '241895593214161', // LOR Quantity Form (inventory)
+    '250054265404145', // MOR Quantity Form (inventory)
   ],
   referral: [
-    // The team is reviewing exclusion-based filtering first.
-    // Exact form IDs can be added later if the project wants a stricter allowlist workflow.
+    '261498369429070', // LOR Referral form
+    '261526295444158', // MOR Referral form
   ],
 };
 
@@ -198,11 +198,26 @@ function normalizeNumericIdList(values = []) {
 }
 
 function getTargetForms(forms) {
-  return forms.filter((form) => !shouldSkipForm(form));
+  const filtered = forms.filter((form) => !shouldSkipForm(form));
+  const configuredIds = new Set(
+    [...TARGET_FORM_IDS.inventory, ...TARGET_FORM_IDS.referral].map((value) => String(value)),
+  );
+
+  if (configuredIds.size > 0) {
+    return filtered.filter((form) => configuredIds.has(String(form.id)));
+  }
+
+  return filtered;
 }
 
 function getAllowlistForForm(form) {
   if (!form || !form.id) {
+    return null;
+  }
+
+  const inventoryIsEmpty = SAFE_FIELD_IDS.inventory.size === 0;
+  const referralIsEmpty = SAFE_FIELD_IDS.referral.size === 0;
+  if (inventoryIsEmpty && referralIsEmpty) {
     return null;
   }
 
