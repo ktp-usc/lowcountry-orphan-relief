@@ -13,7 +13,11 @@ const years = Array.from({ length: 5 }, (_, index) =>
   String(currentYear - index)
 );
 
-const locations = ["All Locations", "Low Country", "Midlands"];
+const locations = [
+  "All Locations",
+  "Low Country",
+  "Midlands"
+];
 
 type DashboardFiltersProps = {
   selectedYear: string;
