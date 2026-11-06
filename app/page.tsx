@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-import { DashboardFilters } from "@/components/DashboardFilters";
+import { DashboardFilters, type DashboardLocation } from "@/components/DashboardFilters";
 import InventorySummary from "@/components/inventory-summary";
 import InventoryTable from "@/components/inventory-table";
 import { calculateRow } from "@/lib/inventory/calculate-row";
@@ -14,9 +14,8 @@ const currency = new Intl.NumberFormat("en-US", {
   currency: "USD",
 });
 
-// Sample data -> row calculation (KAN-12) -> summary (KAN-13)
-const calculatedRows = sampleInputs.map(calculateRow);
-const summary = summarizeInventory(calculatedRows);
+const rows = sampleInputs.map(calculateRow);
+const summary = summarizeInventory(rows);
 
 const summaryMetrics = [
   { id: "initial-count", label: "Initial count", value: summary.totalInitialCount },
@@ -26,8 +25,7 @@ const summaryMetrics = [
   { id: "current-value", label: "Current value", value: currency.format(summary.totalCurrentValue), emphasized: true },
 ];
 
-// The table uses slightly different field names than the inventory library
-const tableRows = calculatedRows.map((row) => ({
+const tableRows = rows.map((row) => ({
   item: row.itemName,
   initialCount: row.initialCount,
   initialValue: row.initialValue,
@@ -37,18 +35,27 @@ const tableRows = calculatedRows.map((row) => ({
   currentValue: row.currentValue,
 }));
 
+const locationLabels: Record<DashboardLocation, string> = {
+  ALL: "All Locations",
+  LOWCOUNTRY: "Low Country",
+  MIDLANDS: "Midlands",
+};
+
 export default function Home() {
   const [selectedYear, setSelectedYear] = useState(
-    String(new Date().getFullYear())
+    String(new Date().getFullYear()),
   );
-  const [selectedLocation, setSelectedLocation] = useState("All Locations");
+  const [selectedLocation, setSelectedLocation] = useState<DashboardLocation>("ALL");
+
+  const headerTitle = useMemo(
+    () => `${locationLabels[selectedLocation]} Inventory ${selectedYear}`,
+    [selectedLocation, selectedYear],
+  );
 
   return (
     <main className="min-h-screen bg-background px-6 py-8 md:px-10">
       <header className="mb-8">
-        <h1 className="text-2xl font-semibold text-foreground">
-          Lowcountry Orphan Relief Inventory
-        </h1>
+        <h1 className="text-2xl font-semibold text-foreground">{headerTitle}</h1>
       </header>
 
       <section className="mb-6">
@@ -69,9 +76,7 @@ export default function Home() {
       </section>
 
       <section className="w-full">
-        <h2 className="mb-4 text-lg font-semibold text-foreground">
-          Inventory
-        </h2>
+        <h2 className="mb-4 text-lg font-semibold text-foreground">Inventory</h2>
         <InventoryTable rows={tableRows} />
       </section>
     </main>
