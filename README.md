@@ -1,39 +1,123 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+﻿This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+## Jotform form inspection utility
 
-First, run the development server:
+A helper script is included at `scripts/jotform-inspect.mjs` to inspect the Jotform forms and submissions using the API key stored in `.env`.
+
+### Requirements
+- Node.js 18 or newer
+- A valid `JOTFORM_API_KEY` value in the project root `.env` file
+
+### Set up the API key
+Create or update `.env` in the project root with:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+JOTFORM_API_KEY=your_api_key_here
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Do not print or commit the API key anywhere else. Keep it only in `.env`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Run the inspection script
+```bash
+node scripts/jotform-inspect.mjs
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Optional paste-friendly output file:
+```bash
+node scripts/jotform-inspect.mjs --output jotform-output.txt
+```
 
-## Learn More
+### Export a CSV of form fields
+```bash
+node scripts/jotform-export-fields.mjs 1234567890 --output exports/lor-fields.csv
+```
 
-To learn more about Next.js, take a look at the following resources:
+The form ID is the numeric value at the end of the Jotform URL. Do not rely on form names or keyword matching.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Inventory normalization utility
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The project also includes a pure normalization helper at `lib/jotform/normalize-inventory.ts`.
 
-## Deploy on Vercel
+This utility converts a Jotform inventory submission object into:
+- normalized `SourceSubmission` metadata
+- a list of inventory activity rows with item code, quantity, and direction (`IN`)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+It does not hit the database or the Jotform API. It accepts:
+- a Jotform form ID
+- a submission object matching the Jotform API payload shape
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Then it maps the configured field IDs to item codes, filters out blank/zero/negative values, and returns the normalized result.
+
+#### Example usage
+```bash
+npx tsx -e "import { normalizeInventorySubmission, sampleInventorySubmissionLowcountry, sampleInventorySubmissionMidlands } from './lib/jotform/normalize-inventory.ts'; const lowcountry = normalizeInventorySubmission('241895593214161', sampleInventorySubmissionLowcountry); const midlands = normalizeInventorySubmission('250054265404145', sampleInventorySubmissionMidlands); console.log(JSON.stringify({ lowcountry, midlands }, null, 2));"
+```
+
+#### What the function returns
+```ts
+{
+  submission: {
+    jotformFormId: string;
+    jotformSubmissionId: string;
+    location: 'LOWCOUNTRY' | 'MIDLANDS';
+    sourceType: 'INVENTORY';
+    submissionDate: Date;
+  },
+  inventoryActivities: [
+    {
+      itemCode: string;
+      quantity: number;
+      direction: 'IN';
+    }
+  ]
+}
+```
+
+### Inventory normalization workflow
+
+This feature is the bridge between raw Jotform inventory responses and the Prisma inventory schema.
+
+How it operates:
+1. Input a Jotform inventory submission object and its form ID.
+2. Match the form ID to the correct inventory mapping for either LOR or MOR.
+3. Read each configured field ID and unwrap the real submitted value from the Jotform answer object.
+4. Skip blank, zero, negative, non-numeric, or non-integer values.
+5. Convert the remaining values to canonical item codes from the seeded item catalog.
+6. Return one normalized `SourceSubmission` record plus one `InventoryActivity` row per valid item.
+
+This keeps the operation pure and deterministic: it never queries the database and never calls the Jotform API. The later database layer can take the returned object and insert it into Prisma in one transaction.
+
+#### Registry and mapping source
+The normalizer uses the sample payloads in `lib/jotform/sample-data/` as the source of truth for field IDs until a live Jotform export is available:
+- `lor-inventory-submission.json` -> LOR form `241895593214161`
+- `mor-inventory-submission.json` -> MOR form `250054265404145`
+
+The item code names come from the seed catalog in `prisma/seed-data.ts`, which matches the `Item.code` field in `prisma/schema.prisma`.
+
+#### Run the validation locally
+```bash
+cd "C:\Users\sunny\Documents\GitHub\lowcountry-orphan-relief"
+npx tsc --noEmit
+npx tsx -e "import { normalizeInventorySubmission, sampleInventorySubmissionLowcountry, sampleInventorySubmissionMidlands } from './lib/jotform/normalize-inventory.ts'; const lor = normalizeInventorySubmission('241895593214161', sampleInventorySubmissionLowcountry); const mor = normalizeInventorySubmission('250054265404145', sampleInventorySubmissionMidlands); console.log(JSON.stringify({ lor: { count: lor.inventoryActivities.length, first: lor.inventoryActivities.slice(0, 5) }, mor: { count: mor.inventoryActivities.length, first: mor.inventoryActivities.slice(0, 5) } }, null, 2));"
+```
+
+The expected result is a non-empty positive activity list for both locations and no silent inclusion of invalid values such as `0`, negative numbers, or non-integer quantities.
+
+### What the script does
+- Reads the Jotform API key from `.env`
+- Lists all available forms and form IDs
+- Targets only the exact Jotform form IDs configured in `TARGET_FORM_IDS`
+- Prints field names, IDs, and field types for each target form
+- Prints recent submissions for the configured forms
+- Filters output to the approved field IDs for each form
+- Excludes a known remove list of sensitive fields by exact ID
+- Saves a sanitized pasteable text file when `--output` is used
+
+### Safety rules
+- Keep all field selection by exact Jotform field ID, not by keyword match
+- Ignore other forms unless their exact IDs are added to the config
+- Remove or hide names, locations, ages, and other personal identifiers before sharing output in Google Docs
+- Keep the approved list narrow and conservative until the team confirms the exact safe columns
 
 ## Jotform submissions
 
@@ -184,3 +268,6 @@ activities per submission, IN/OUT movement, starting-count uniqueness by
 location, per-year valuation uniqueness, exact cents, quantity constraints,
 and protected history. Fixture rows are rolled back; PostgreSQL sequences can
 still advance. Run `npm run lint` and `npm run build` for application checks.
+
+### Notes
+This script is meant for local inspection and validation. It does not write or store any secret outside of `.env`.

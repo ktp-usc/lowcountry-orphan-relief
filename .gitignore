@@ -31,8 +31,13 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
+.env*
 
-# Prisma Client is generated during install/build.
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
 next-env.d.ts
 
 # IntelliJ project files
@@ -41,9 +46,3 @@ next-env.d.ts
 out
 gen
 
-/generated/prisma/
-/.seed-build/
-*.tsbuildinfo
-.vercel
-.env*
-!.env.example
