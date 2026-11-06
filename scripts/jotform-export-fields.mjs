@@ -20,6 +20,13 @@ const REMOVED_FIELD_IDS = new Set([
   '7',
 ]);
 
+const EXCLUDED_FORM_IDS = new Set([
+  '261534987726067', // Funds Request Form
+]);
+
+/**
+ * Load environment variables from the .env file.
+ */
 function loadEnvFile() {
   if (process.env.JOTFORM_API_KEY) {
     return;
@@ -50,6 +57,9 @@ function loadEnvFile() {
   }
 }
 
+/**
+ * Ensure the JOTFORM_API_KEY is set in the environment.
+ */
 function ensureApiKey() {
   loadEnvFile();
 
@@ -58,6 +68,9 @@ function ensureApiKey() {
   }
 }
 
+/**
+ * Make a request to the Jotform API.
+ */
 async function jotformRequest(endpoint, params = {}) {
   const url = new URL(`https://api.jotform.com${endpoint}`);
 
@@ -91,6 +104,9 @@ async function jotformRequest(endpoint, params = {}) {
   }
 }
 
+/**
+ * Fetch all forms for the authenticated user.
+ */
 async function fetchForms() {
   const limit = 100;
   const forms = [];
@@ -117,6 +133,9 @@ async function fetchForms() {
   return forms;
 }
 
+/**
+ * Fetch the questions (fields) for a specific form.
+ */
 async function fetchFormQuestions(formId) {
   const response = await jotformRequest(`/form/${formId}/questions`);
   return response?.content ?? {};
@@ -130,14 +149,21 @@ function normalizeText(value) {
   return String(value).trim();
 }
 
+/**
+ * Neutralize spreadsheet-formula triggers before writing CSV values.
+ */
 function toCsvLine(row) {
   return row.map((value) => {
     const text = value == null ? '' : String(value);
-    const escaped = text.replace(/"/g, '""');
+    const normalized = text.replace(/^([=+\-@\t\r])/u, "'$1");
+    const escaped = normalized.replace(/"/g, '""');
     return `"${escaped}"`;
   }).join(',');
 }
 
+/**
+ * Build rows for CSV output from the form questions.
+ */
 function buildFieldRows(questionMap) {
   const rows = [];
 
@@ -162,6 +188,9 @@ function buildFieldRows(questionMap) {
   return rows;
 }
 
+/**
+ * Write the CSV file to the specified path.
+ */
 function writeCsv(filePath, rows) {
   const header = ['field_id', 'field_name', 'field_type', 'required'];
   const csvRows = [header, ...rows.map((row) => [row.fieldId, row.name, row.type, row.required])];
@@ -171,22 +200,64 @@ function writeCsv(filePath, rows) {
   return csvText;
 }
 
+/**
+ * Parse the script arguments and validate the export path.
+ */
 function parseArgs() {
   const args = process.argv.slice(2);
-  let formId = args.find((arg) => /^\d+$/.test(arg));
-  let outputPath = args.find((arg) => arg.startsWith('--output='));
+  let formId = null;
+  let outputPath = null;
+  let seenOutput = false;
 
-  if (!formId) {
-    throw new Error('Usage: node scripts/jotform-export-fields.mjs <FORM_ID> --output=field-export.csv');
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+
+    if (arg === '--output' || arg === '-o') {
+      const nextValue = args[i + 1];
+      if (!nextValue || nextValue.startsWith('--')) {
+        throw new Error('Missing output path after --output.');
+      }
+      outputPath = nextValue;
+      seenOutput = true;
+      i += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--output=')) {
+      outputPath = arg.slice('--output='.length);
+      seenOutput = true;
+      continue;
+    }
+
+    if (/^\d+$/.test(arg)) {
+      if (!formId) {
+        formId = arg;
+      }
+      continue;
+    }
+
+    throw new Error(`Unknown argument: ${arg}`);
   }
 
-  if (outputPath) {
-    outputPath = outputPath.replace('--output=', '');
-  } else {
+  if (!formId) {
+    throw new Error('Usage: node scripts/jotform-export-fields.mjs <FORM_ID> [--output <PATH> | --output=<PATH>]');
+  }
+
+  if (outputPath === null || outputPath.trim() === '') {
+    if (seenOutput) {
+      throw new Error('Missing output path after --output.');
+    }
     outputPath = path.resolve(__dirname, '../exports/jotform-fields.csv');
   }
 
   return { formId, outputPath };
+}
+
+/**
+ * Whether a form is explicitly excluded from export review lists.
+ */
+function shouldSkipForm(form) {
+  return form && EXCLUDED_FORM_IDS.has(String(form.id));
 }
 
 async function main() {
@@ -199,6 +270,10 @@ async function main() {
 
   if (!form) {
     throw new Error(`Form ID ${formId} was not found in this Jotform account.`);
+  }
+
+  if (shouldSkipForm(form)) {
+    throw new Error(`Form ${form.id} is excluded from export by policy.`);
   }
 
   const questions = await fetchFormQuestions(formId);

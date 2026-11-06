@@ -31,6 +31,8 @@ export type JotformSubmissionLike = {
   id?: string | number | null;
   createdAt?: string | Date | null;
   updatedAt?: string | Date | null;
+  created_at?: string | Date | null;
+  updated_at?: string | Date | null;
   answers?: Record<string, JotformAnswerValue>;
 };
 
@@ -132,19 +134,35 @@ function toDate(value?: string | Date | null): Date {
   return new Date();
 }
 
-function extractAnswerValue(value: JotformAnswerValue): string | number | boolean | null {
+function normalizeNestedAnswer(value: Record<string, unknown>): unknown {
+  if (Object.prototype.hasOwnProperty.call(value, 'answer')) {
+    return value.answer ?? null;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(value, 'value')) {
+    return value.value ?? null;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(value, 'name')) {
+    return typeof value.name === 'string' ? value.name : null;
+  }
+
+  return null;
+}
+
+function extractAnswerValue(value: JotformAnswerValue): string | number | null {
   if (value === null || value === undefined || value === '') {
     return null;
   }
 
   if (typeof value === 'object') {
-    const nested = value.answer ?? value.text ?? value.value ?? value.name ?? null;
+    const nested = normalizeNestedAnswer(value as Record<string, unknown>);
     if (nested === null || nested === undefined || nested === '') {
       return null;
     }
 
     if (typeof nested === 'boolean') {
-      return nested;
+      return null;
     }
 
     return typeof nested === 'number' || typeof nested === 'string'
@@ -152,12 +170,16 @@ function extractAnswerValue(value: JotformAnswerValue): string | number | boolea
       : String(nested);
   }
 
-  return value;
+  if (typeof value === 'boolean') {
+    return null;
+  }
+
+  return typeof value === 'number' || typeof value === 'string' ? value : null;
 }
 
 function parseQuantity(value: JotformAnswerValue): number | null {
   const extracted = extractAnswerValue(value);
-  if (extracted === null || typeof extracted === 'boolean') {
+  if (extracted === null) {
     return null;
   }
 
@@ -167,9 +189,17 @@ function parseQuantity(value: JotformAnswerValue): number | null {
     return null;
   }
 
-  return numeric;
+  const truncated = Math.trunc(numeric);
+  if (!Number.isInteger(numeric) || truncated <= 0 || truncated !== numeric) {
+    return null;
+  }
+
+  return truncated;
 }
 
+/**
+ * Normalize a Jotform inventory submission into Prisma-ready submission metadata and activity rows.
+ */
 export function normalizeInventorySubmission(
   formId: string | number,
   submission: JotformSubmissionLike,
@@ -183,10 +213,6 @@ export function normalizeInventorySubmission(
     const quantity = parseQuantity(rawValue);
 
     if (quantity === null) {
-      continue;
-    }
-
-    if (!Number.isFinite(quantity) || quantity <= 0) {
       continue;
     }
 
@@ -204,6 +230,9 @@ export function normalizeInventorySubmission(
 
   const normalizedFormId = normalizeFormId(formId);
   const submissionId = submission?.id ?? '';
+  const submissionDate = toDate(
+    submission?.created_at ?? submission?.updated_at ?? submission?.createdAt ?? submission?.updatedAt,
+  );
 
   return {
     submission: {
@@ -211,7 +240,7 @@ export function normalizeInventorySubmission(
       jotformSubmissionId: String(submissionId ?? '').trim() || 'unknown-submission-id',
       location: config.location,
       sourceType: SourceType.INVENTORY,
-      submissionDate: toDate(submission?.createdAt ?? submission?.updatedAt),
+      submissionDate,
     },
     inventoryActivities,
   };
@@ -243,6 +272,9 @@ export const sampleInventorySubmissionMidlands: JotformSubmissionLike = {
   },
 };
 
+/**
+ * Run a small set of normalization examples covering valid and invalid inventory data.
+ */
 export function runInventoryNormalizationExamples() {
   const lowcountry = normalizeInventorySubmission(
     '240656204390048',
@@ -277,6 +309,9 @@ export function runInventoryNormalizationExamples() {
   };
 }
 
+/**
+ * Exercise the inventory normalizer against valid, invalid, zero, and negative inputs.
+ */
 export function testInventoryNormalization() {
   const lowcountry = normalizeInventorySubmission(
     '240656204390048',
