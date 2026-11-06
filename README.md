@@ -35,6 +35,38 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
+## Jotform submissions
+
+Set `JOTFORM_API_KEY` in the project's ignored `.env` file to a key that can read
+the form. For EU or HIPAA accounts, set `JOTFORM_API_BASE_URL` as shown in
+`.env.example`. Keep these variables server-only.
+
+After `npm ci`, run the read-only live test with the numeric form ID:
+
+```bash
+npm run --silent test:jotform -- YOUR_FORM_ID
+```
+
+It prints only the unique submission count and earliest/latest `created_at`
+timestamps. Empty forms show `Submissions: 0` and `Date range: none`. If any
+submission lacks a supported timestamp, the date range is `unavailable`.
+Timestamps are displayed as supplied by Jotform without assuming a timezone;
+answers, personal details, and the API key are never printed. Errors go to
+stderr and exit with a nonzero status.
+
+Server code can import `fetchSubmissions` from
+`@/lib/jotform/fetch-submissions` and call `await fetchSubmissions(formId)`.
+The function returns raw submission objects, requests pages of up to 1,000
+records until an empty page, and rejects on HTTP/API errors, invalid payloads,
+timeouts, or a repeated page that makes no progress. It does not save or
+normalize records. Like offset pagination generally, it does not provide a
+snapshot if submissions are added or deleted during retrieval.
+
+Run offline automated checks with `npm run test:jotform:unit`; they use mock
+responses and need no Jotform key. Scripts use native TypeScript loading when
+available and the existing TypeScript dev dependency on Node 20, so no new
+dependency or lockfile update is required. API reference: [Jotform API](https://api.jotform.com/docs/).
+
 ## Inventory database
 
 The inventory ledger uses Prisma ORM 7.10.1 and PostgreSQL on Neon. Use Node
