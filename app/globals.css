@@ -1,7 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-
+/*
+* use shared colors instead of hardcoded colors ( remove the inline)
+*/
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
