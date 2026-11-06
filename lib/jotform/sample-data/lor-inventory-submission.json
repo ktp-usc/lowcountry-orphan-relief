@@ -1,0 +1,311 @@
+{
+  "id": "6694626226213289541",
+  "form_id": "241895593214161",
+  "ip": "",
+  "created_at": "2026-11-02 16:03:42",
+  "status": "ACTIVE",
+  "new": "1",
+  "flag": "0",
+  "notes": "",
+  "updated_at": null,
+  "answers": {
+    "1": {
+      "name": "heading",
+      "order": "1",
+      "text": "LOR Quantity Form",
+      "type": "control_head"
+    },
+    "2": {
+      "name": "submit2",
+      "order": "42",
+      "text": "Submit",
+      "type": "control_button"
+    },
+    "8": {
+      "maxValue": "",
+      "name": "mensTops",
+      "order": "3",
+      "text": "Men's Tops",
+      "type": "control_number"
+    },
+    "49": {
+      "maxValue": "",
+      "name": "diapers",
+      "order": "29",
+      "text": "Diapers",
+      "type": "control_number"
+    },
+    "50": {
+      "maxValue": "",
+      "name": "pullups",
+      "order": "30",
+      "text": "Pull-Ups",
+      "type": "control_number"
+    },
+    "51": {
+      "maxValue": "",
+      "name": "wipes",
+      "order": "31",
+      "text": "Wipes",
+      "type": "control_number"
+    },
+    "52": {
+      "maxValue": "",
+      "name": "stuffedAnimals",
+      "order": "32",
+      "text": "Stuffed Animals",
+      "type": "control_number"
+    },
+    "53": {
+      "maxValue": "",
+      "name": "books",
+      "order": "33",
+      "text": "Books",
+      "type": "control_number",
+      "answer": "-1"
+    },
+    "54": {
+      "maxValue": "",
+      "name": "blanket",
+      "order": "34",
+      "text": "Blanket",
+      "type": "control_number"
+    },
+    "61": {
+      "maxValue": "",
+      "name": "05",
+      "order": "36",
+      "text": "0-5",
+      "type": "control_number"
+    },
+    "62": {
+      "maxValue": "",
+      "name": "number62",
+      "order": "37",
+      "text": "6-11",
+      "type": "control_number",
+      "answer": "15"
+    },
+    "63": {
+      "maxValue": "",
+      "name": "number63",
+      "order": "38",
+      "text": "12-18",
+      "type": "control_number",
+      "answer": "1"
+    },
+    "64": {
+      "maxValue": "",
+      "name": "elementarySchool",
+      "order": "40",
+      "text": "Elementary School Bookbag & Supplies",
+      "type": "control_number",
+      "answer": "28"
+    },
+    "65": {
+      "maxValue": "",
+      "name": "middlehighSchool",
+      "order": "41",
+      "text": "Middle/High School Bookbag & Supplies",
+      "type": "control_number"
+    },
+    "70": {
+      "maxValue": "",
+      "name": "mensPantsshorts70",
+      "order": "4",
+      "text": "Men's Bottoms",
+      "type": "control_number",
+      "answer": "1"
+    },
+    "79": {
+      "maxValue": "",
+      "name": "mensJackets79",
+      "order": "5",
+      "text": "Men's Jackets",
+      "type": "control_number",
+      "answer": "-1"
+    },
+    "82": {
+      "maxValue": "",
+      "name": "mensPajamas82",
+      "order": "6",
+      "text": "Men's Pajamas",
+      "type": "control_number"
+    },
+    "85": {
+      "maxValue": "",
+      "name": "mensSocks85",
+      "order": "7",
+      "text": "Men's Socks",
+      "type": "control_number"
+    },
+    "88": {
+      "maxValue": "",
+      "name": "mensUnderwear88",
+      "order": "8",
+      "text": "Men's Underwear",
+      "type": "control_number"
+    },
+    "91": {
+      "maxValue": "",
+      "name": "mensShoes91",
+      "order": "9",
+      "text": "Men's Shoes",
+      "type": "control_number",
+      "answer": "-1"
+    },
+    "94": {
+      "maxValue": "",
+      "name": "womensShirts94",
+      "order": "11",
+      "text": "Women's Tops",
+      "type": "control_number"
+    },
+    "97": {
+      "maxValue": "",
+      "name": "womensPantsshorts97",
+      "order": "12",
+      "text": "Women's Bottoms",
+      "type": "control_number",
+      "answer": "-1"
+    },
+    "106": {
+      "maxValue": "",
+      "name": "womensDresses106",
+      "order": "13",
+      "text": "Women's Dresses",
+      "type": "control_number"
+    },
+    "109": {
+      "maxValue": "",
+      "name": "womensPajamas109",
+      "order": "15",
+      "text": "Women's Pajamas",
+      "type": "control_number"
+    },
+    "112": {
+      "maxValue": "",
+      "name": "womensSocks112",
+      "order": "16",
+      "text": "Women's Socks",
+      "type": "control_number"
+    },
+    "115": {
+      "maxValue": "",
+      "name": "womensUnderwear115",
+      "order": "17",
+      "text": "Women's Underwear",
+      "type": "control_number"
+    },
+    "118": {
+      "maxValue": "",
+      "name": "womensShoes118",
+      "order": "18",
+      "text": "Women's Shoes",
+      "type": "control_number",
+      "answer": "-1"
+    },
+    "121": {
+      "maxValue": "",
+      "name": "mensJackets121",
+      "order": "14",
+      "text": "Women's Jackets",
+      "type": "control_number"
+    },
+    "124": {
+      "maxValue": "",
+      "name": "childrensShirts124",
+      "order": "20",
+      "text": "Children's Tops",
+      "type": "control_number",
+      "answer": "-2"
+    },
+    "127": {
+      "maxValue": "",
+      "name": "childrensBottoms",
+      "order": "21",
+      "text": "Children's Bottoms",
+      "type": "control_number",
+      "answer": "1"
+    },
+    "136": {
+      "maxValue": "",
+      "name": "childrensDresses",
+      "order": "22",
+      "text": "Children's Dresses",
+      "type": "control_number"
+    },
+    "139": {
+      "maxValue": "",
+      "name": "childrensJackets",
+      "order": "23",
+      "text": "Children's Jackets",
+      "type": "control_number",
+      "answer": "-6"
+    },
+    "142": {
+      "maxValue": "",
+      "name": "childrensPajamas",
+      "order": "24",
+      "text": "Children's Pajamas",
+      "type": "control_number"
+    },
+    "145": {
+      "maxValue": "",
+      "name": "childrensSocks",
+      "order": "25",
+      "text": "Children's Socks",
+      "type": "control_number"
+    },
+    "148": {
+      "maxValue": "",
+      "name": "childrensUnderwear",
+      "order": "26",
+      "text": "Children's Underwear",
+      "type": "control_number"
+    },
+    "151": {
+      "maxValue": "",
+      "name": "childrensShoes",
+      "order": "27",
+      "text": "Children's Shoes",
+      "type": "control_number"
+    },
+    "160": {
+      "name": "mens160",
+      "order": "2",
+      "text": "Mens",
+      "type": "control_head"
+    },
+    "161": {
+      "name": "womens161",
+      "order": "10",
+      "text": "Womens",
+      "type": "control_head"
+    },
+    "162": {
+      "name": "children162",
+      "order": "19",
+      "text": "Children",
+      "type": "control_head"
+    },
+    "163": {
+      "name": "misc163",
+      "order": "28",
+      "text": "Misc",
+      "type": "control_head"
+    },
+    "164": {
+      "name": "toiletryKits164",
+      "order": "35",
+      "text": "Toiletry Kits",
+      "type": "control_head"
+    },
+    "165": {
+      "name": "schoolSupplies165",
+      "order": "39",
+      "text": "School Supplies",
+      "type": "control_head"
+    }
+  }
+}

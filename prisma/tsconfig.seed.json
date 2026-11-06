@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": "..",
+    "outDir": "../.seed-build",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "noEmitOnError": true,
+    "types": ["node"]
+  },
+  "include": ["seed.ts", "seed-data.ts", "../lib/inventory/get-inventory-query.ts", "../generated/prisma/**/*.ts"]
+}
