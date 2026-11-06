@@ -67,9 +67,6 @@ function shouldSkipForm(form) {
   return form && EXCLUDED_FORM_IDS.has(String(form.id));
 }
 
-/**
- * Return the form-scoped field IDs that must stay hidden during review.
- */
 function getRemovedFieldIdsForForm(formId) {
   const normalizedFormId = String(formId ?? '');
   const combined = new Set(DEFAULT_REMOVED_FIELD_IDS);
@@ -84,9 +81,6 @@ function getRemovedFieldIdsForForm(formId) {
   return combined;
 }
 
-/**
- * Whether a field should be suppressed from review output for the provided form.
- */
 function shouldSkipField(formId, fieldId) {
   if (shouldSkipForm({ id: formId })) {
     return true;
@@ -95,9 +89,6 @@ function shouldSkipField(formId, fieldId) {
   return getRemovedFieldIdsForForm(formId).has(String(fieldId));
 }
 
-/**
- * Parse script arguments for optional output paths.
- */
 function parseArgs() {
   const rawArgs = process.argv.slice(2);
   let outputPath = null;
@@ -219,9 +210,6 @@ function getTargetForms(forms) {
   return filtered;
 }
 
-/**
- * Resolve the safe allowlist for a form using the same string-form ID matching as the configured target IDs.
- */
 function getAllowlistForForm(form) {
   if (!form || !form.id) {
     return null;
@@ -233,12 +221,12 @@ function getAllowlistForForm(form) {
     return null;
   }
 
-  const formId = String(form.id);
-  if (TARGET_FORM_IDS.inventory.includes(formId)) {
+  const id = Number(form.id);
+  if (TARGET_FORM_IDS.inventory.includes(id)) {
     return SAFE_FIELD_IDS.inventory;
   }
 
-  if (TARGET_FORM_IDS.referral.includes(formId)) {
+  if (TARGET_FORM_IDS.referral.includes(id)) {
     return SAFE_FIELD_IDS.referral;
   }
 

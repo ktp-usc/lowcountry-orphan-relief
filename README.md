@@ -50,7 +50,7 @@ Then it maps the configured field IDs to item codes, filters out blank/zero/nega
 
 #### Example usage
 ```bash
-npx tsx -e "import { normalizeInventorySubmission, sampleInventorySubmissionLowcountry, sampleInventorySubmissionMidlands } from './lib/jotform/normalize-inventory.ts'; console.log(JSON.stringify({ lowcountry: normalizeInventorySubmission('240656204390048', sampleInventorySubmissionLowcountry), midlands: normalizeInventorySubmission('250054265404145', sampleInventorySubmissionMidlands) }, null, 2));"
+npx tsx -e "import { normalizeInventorySubmission, sampleInventorySubmissionLowcountry, sampleInventorySubmissionMidlands } from './lib/jotform/normalize-inventory.ts'; const lowcountry = normalizeInventorySubmission('241895593214161', sampleInventorySubmissionLowcountry); const midlands = normalizeInventorySubmission('250054265404145', sampleInventorySubmissionMidlands); console.log(JSON.stringify({ lowcountry, midlands }, null, 2));"
 ```
 
 #### What the function returns
@@ -72,6 +72,36 @@ npx tsx -e "import { normalizeInventorySubmission, sampleInventorySubmissionLowc
   ]
 }
 ```
+
+### Inventory normalization workflow
+
+This feature is the bridge between raw Jotform inventory responses and the Prisma inventory schema.
+
+How it operates:
+1. Input a Jotform inventory submission object and its form ID.
+2. Match the form ID to the correct inventory mapping for either LOR or MOR.
+3. Read each configured field ID and unwrap the real submitted value from the Jotform answer object.
+4. Skip blank, zero, negative, non-numeric, or non-integer values.
+5. Convert the remaining values to canonical item codes from the seeded item catalog.
+6. Return one normalized `SourceSubmission` record plus one `InventoryActivity` row per valid item.
+
+This keeps the operation pure and deterministic: it never queries the database and never calls the Jotform API. The later database layer can take the returned object and insert it into Prisma in one transaction.
+
+#### Registry and mapping source
+The normalizer uses the sample payloads in `lib/jotform/sample-data/` as the source of truth for field IDs until a live Jotform export is available:
+- `lor-inventory-submission.json` -> LOR form `241895593214161`
+- `mor-inventory-submission.json` -> MOR form `250054265404145`
+
+The item code names come from the seed catalog in `prisma/seed-data.ts`, which matches the `Item.code` field in `prisma/schema.prisma`.
+
+#### Run the validation locally
+```bash
+cd "C:\Users\sunny\Documents\GitHub\lowcountry-orphan-relief"
+npx tsc --noEmit
+npx tsx -e "import { normalizeInventorySubmission, sampleInventorySubmissionLowcountry, sampleInventorySubmissionMidlands } from './lib/jotform/normalize-inventory.ts'; const lor = normalizeInventorySubmission('241895593214161', sampleInventorySubmissionLowcountry); const mor = normalizeInventorySubmission('250054265404145', sampleInventorySubmissionMidlands); console.log(JSON.stringify({ lor: { count: lor.inventoryActivities.length, first: lor.inventoryActivities.slice(0, 5) }, mor: { count: mor.inventoryActivities.length, first: mor.inventoryActivities.slice(0, 5) } }, null, 2));"
+```
+
+The expected result is a non-empty positive activity list for both locations and no silent inclusion of invalid values such as `0`, negative numbers, or non-integer quantities.
 
 ### What the script does
 - Reads the Jotform API key from `.env`
