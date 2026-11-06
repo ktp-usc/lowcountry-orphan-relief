@@ -8,9 +8,8 @@
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "rewriteRelativeImportExtensions": true,
     "noEmitOnError": true,
     "types": ["node"]
   },
-  "include": ["seed.ts", "seed-data.ts", "../generated/prisma/**/*.ts"]
+  "include": ["seed.ts", "seed-data.ts", "../lib/inventory/get-inventory-query.ts", "../generated/prisma/**/*.ts"]
 }

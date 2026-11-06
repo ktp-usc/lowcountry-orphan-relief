@@ -23,6 +23,8 @@
     "db:seed": "prisma db seed",
     "db:seed:demo": "prisma db seed -- --demo",
     "db:test:seed": "node scripts/test-inventory-seed.mjs",
+    "db:test:inventory": "node scripts/test-inventory-query.mjs",
+    "test:inventory:unit": "node scripts/test-inventory-query.mjs --unit",
     "db:check:seed": "node scripts/check-inventory-seed.mjs",
     "check:inventory": "node scripts/check-inventory.mjs"
   },
