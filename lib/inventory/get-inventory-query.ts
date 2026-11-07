@@ -11,6 +11,16 @@ export type InventoryCalculationInput = {
 
 type InventoryQueryClient = Pick<PrismaClient, "item">;
 
+export class MissingValuationsError extends Error {
+  year: number;
+
+  constructor(year: number, itemName: string) {
+    super(`Missing ${year} valuation for ${itemName}.`);
+    this.name = "MissingValuationsError";
+    this.year = year;
+  }
+}
+
 /**
  * Return every catalog item for a UTC reporting year and one location.
  * Missing opening counts and activity become zero. An absent yearly valuation
@@ -59,7 +69,7 @@ export async function queryInventoryRows(
   return items.map((item) => {
     const valuation = item.valuations[0];
     if (!valuation) {
-      throw new Error(`Missing ${year} valuation for ${item.displayName}.`);
+        throw new MissingValuationsError(year, item.displayName);
     }
 
     let quantitySub = 0;

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
-import { fetchDashboard } from "@/client/api/inventory";
+import { DashboardApiError, fetchDashboard } from "@/client/api/inventory";
 import { qk } from "@/client/queries/keys";
 import { DashboardFilters } from "@/components/DashboardFilters";
 import InventorySummary from "@/components/inventory-summary";
@@ -23,7 +23,10 @@ export default function Home() {
   const { data, isPending, isError, error } = useQuery({
     queryKey: qk.dashboard(selectedYear, selectedLocation),
     queryFn: () => fetchDashboard(selectedYear, selectedLocation),
-    placeholderData: keepPreviousData,
+    // Don't retry 422 errors (missing valuations); retrying can't fix them.
+    retry: (failureCount, err) =>
+      !(err instanceof DashboardApiError && err.status === 422) &&
+      failureCount < 3,
   });
 
   const summary = data?.summary;
@@ -49,6 +52,11 @@ export default function Home() {
     currentValue: row.currentValue,
   }));
 
+  const errorMessage =
+    error instanceof DashboardApiError && error.code === "MISSING_VALUATIONS"
+      ? `Inventory valuations haven't been entered for ${selectedYear}, so this year can't be displayed. Please choose a different year.`
+      : `Could not load inventory: ${error?.message}`;
+
   return (
     <main className="min-h-screen bg-background px-6 py-8 md:px-10">
       <header className="mb-8">
@@ -66,12 +74,12 @@ export default function Home() {
         />
       </section>
 
-      {isError ? (
-        <p role="alert" className="text-sm text-destructive">
-          Could not load inventory: {error.message}
-        </p>
-      ) : isPending ? (
+      {isPending ? (
         <p className="text-sm text-muted-foreground">Loading inventory...</p>
+      ) : isError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {errorMessage}
+        </p>
       ) : (
         <>
           <section className="mb-6">
