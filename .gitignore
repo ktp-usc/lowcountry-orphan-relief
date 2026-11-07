@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# generated prisma client artifacts
+/generated/prisma/
+
 # IntelliJ project files
 .idea
 *.iml
