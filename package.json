@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:normalize:inventory": "node --test tests/normalize-inventory.test.mjs"
+    "test:normalize:inventory": "node --test tests/normalize-inventory.test.mjs",
+    "test:save:submission": "node --test tests/save-submission.test.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",
