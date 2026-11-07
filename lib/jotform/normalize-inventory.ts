@@ -158,21 +158,21 @@ function getInventoryFormConfig(formId: string | number): InventoryFormConfig {
   return match;
 }
 
-function toDate(value?: string | Date | null): Date {
-  if (!value) {
-    return new Date();
+function toDate(value: string | Date | null | undefined, label: string): Date {
+  if (value === null || value === undefined || value === '') {
+    throw new Error(`Missing required ${label}.`);
   }
 
   const date = new Date(value);
-  if (!Number.isNaN(date.getTime())) {
-    return date;
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`Invalid ${label}: ${String(value)}`);
   }
 
-  return new Date();
+  return date;
 }
 
 function adaptAnswerObject(value: Record<string, unknown>): string | number | boolean | null {
-  const answerValue = value.answer ?? value.value ?? value.name ?? null;
+  const answerValue = value.answer ?? null;
 
   if (answerValue === null || answerValue === undefined || answerValue === '') {
     return null;
@@ -200,21 +200,43 @@ function extractAnswerValue(value: JotformAnswerValue): string | number | boolea
 
 function parseQuantity(value: JotformAnswerValue): number | null {
   const extracted = extractAnswerValue(value);
-  if (extracted === null || typeof extracted === 'boolean') {
+  if (extracted === null) {
     return null;
+  }
+
+  if (typeof extracted === 'boolean') {
+    throw new Error('Invalid quantity value: booleans are not supported.');
   }
 
   const numeric = typeof extracted === 'number' ? extracted : Number(String(extracted).trim());
 
   if (!Number.isFinite(numeric)) {
+    throw new Error(`Invalid quantity value: ${String(extracted)}`);
+  }
+
+  if (numeric === 0) {
     return null;
   }
 
-  if (!Number.isInteger(numeric) || numeric <= 0) {
-    return null;
+  if (!Number.isInteger(numeric) || numeric < 0) {
+    throw new Error(`Invalid quantity value: ${String(extracted)}`);
   }
 
   return numeric;
+}
+
+function resolveSubmissionId(submission: JotformSubmissionLike): string {
+  const submissionId = String(submission?.id ?? '').trim();
+  if (!submissionId) {
+    throw new Error('Missing required submission id.');
+  }
+
+  return submissionId;
+}
+
+function resolveSubmissionDate(submission: JotformSubmissionLike): Date {
+  const timestamp = submission?.created_at ?? submission?.updated_at ?? submission?.createdAt ?? submission?.updatedAt;
+  return toDate(timestamp, 'submission timestamp');
 }
 
 export function normalizeInventorySubmission(
@@ -222,12 +244,21 @@ export function normalizeInventorySubmission(
   submission: JotformSubmissionLike,
 ): NormalizedInventoryResult {
   const config = getInventoryFormConfig(formId);
+  const submissionId = resolveSubmissionId(submission);
+  const submissionDate = resolveSubmissionDate(submission);
   const answers = submission?.answers ?? {};
   const inventoryActivities: NormalizedInventoryActivity[] = [];
 
   for (const [fieldId, itemCode] of Object.entries(config.itemCodeByFieldId)) {
     const rawValue = answers[fieldId];
-    const quantity = parseQuantity(rawValue);
+    let quantity: number | null = null;
+
+    try {
+      quantity = parseQuantity(rawValue);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Invalid quantity value.';
+      throw new Error(`Invalid quantity for field ${fieldId}: ${message}`);
+    }
 
     if (quantity === null) {
       continue;
@@ -246,17 +277,14 @@ export function normalizeInventorySubmission(
   }
 
   const normalizedFormId = normalizeFormId(formId);
-  const submissionId = submission?.id ?? '';
 
   return {
     submission: {
       jotformFormId: normalizedFormId,
-      jotformSubmissionId: String(submissionId ?? '').trim() || 'unknown-submission-id',
+      jotformSubmissionId: submissionId,
       location: config.location,
       sourceType: SourceType.INVENTORY,
-      submissionDate: toDate(
-        submission?.created_at ?? submission?.updated_at ?? submission?.createdAt ?? submission?.updatedAt,
-      ),
+      submissionDate,
     },
     inventoryActivities,
   };

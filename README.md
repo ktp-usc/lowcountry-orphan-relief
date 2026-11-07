@@ -81,9 +81,11 @@ How it operates:
 1. Input a Jotform inventory submission object and its form ID.
 2. Match the form ID to the correct inventory mapping for either LOR or MOR.
 3. Read each configured field ID and unwrap the real submitted value from the Jotform answer object.
-4. Skip blank, zero, negative, non-numeric, or non-integer values.
-5. Convert the remaining values to canonical item codes from the seeded item catalog.
-6. Return one normalized `SourceSubmission` record plus one `InventoryActivity` row per valid item.
+4. Read quantity only from each field's `answer` value.
+5. Skip blank or zero values, and reject invalid quantities (negative, text, non-integer/fraction).
+6. Reject missing/invalid submission IDs and missing/invalid timestamps.
+7. Convert the remaining values to canonical item codes from the seeded item catalog.
+8. Return one normalized `SourceSubmission` record plus one `InventoryActivity` row per valid item.
 
 This keeps the operation pure and deterministic: it never queries the database and never calls the Jotform API. The later database layer can take the returned object and insert it into Prisma in one transaction.
 
@@ -102,6 +104,18 @@ npx tsx -e "import { normalizeInventorySubmission, sampleInventorySubmissionLowc
 ```
 
 The expected result is a non-empty positive activity list for both locations and no silent inclusion of invalid values such as `0`, negative numbers, or non-integer quantities.
+
+#### Run normalization unit tests
+```bash
+npm run test:normalize:inventory
+```
+
+This test uses fixtures shaped like `lib/jotform/sample-data/*.json` and asserts expected output for:
+- multiple locations
+- missing `answer` values
+- blank and zero quantities (skipped)
+- invalid quantities (text/fractions, rejected)
+- missing/invalid submission IDs and timestamps (rejected)
 
 ### What the script does
 - Reads the Jotform API key from `.env`
@@ -176,7 +190,9 @@ Set the same server-only `DATABASE_URL` environment variable in the deployment
 environment. Never use a `NEXT_PUBLIC_` variable for database credentials.
 Import the shared client from `@/lib/prisma` in server code running on the Node.js
 runtime. The PostgreSQL TCP adapter is not intended for Next.js Edge routes.
-Generated files in `generated/prisma` are excluded from git.
+Generated files under `generated/` are excluded from git.
+`npm run build` runs `prisma generate` first so deployment environments recreate
+the Prisma client before Next.js compilation.
 
 ### Normalized records
 

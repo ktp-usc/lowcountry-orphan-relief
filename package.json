@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "prisma generate",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:normalize:inventory": "node --test tests/normalize-inventory.test.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",
