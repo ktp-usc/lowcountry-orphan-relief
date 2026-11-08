@@ -306,3 +306,13 @@ Run importer unit tests:
 ```bash
 npm run test:save:submission
 ```
+
+Run the real Prisma integration test against a non-production database:
+```bash
+INTEGRATION_DATABASE_URL=postgresql://... npm run test:save:submission:integration
+```
+
+The integration test uses the generated Prisma client, writes one uniquely tagged
+submission, verifies it through Prisma reads, tests duplicate skip and invalid
+item-code rejection, then deletes only its own test rows.
+
