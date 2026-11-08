@@ -1,27 +1,37 @@
-import type { InventoryRow } from "./summarize";
-
-export type RowInput = {
+export type InventoryRow = {
   itemName: string;
   initialCount: number;
-  quantityAdd: number;
-  quantitySub: number;
-  valuePerUnit: number;
+  initialValue: number | null;
+  itemsSubtracted: number;
+  itemsAdded: number;
+  currentCount: number;
+  currentValue: number | null;
 };
 
-// TEMPORARY STAND-IN for KAN-12.
-// When the real KAN-12 file is merged, use your teammate's version of this file.
-export function calculateRow(input: RowInput): InventoryRow {
-  const currentCount =
-    input.initialCount + input.quantityAdd - input.quantitySub;
-  const round = (n: number) => Math.round(n * 100) / 100;
+/**
+ * Calculates an inventory row, preserving negative balances and unrounded values.
+ * A null valuePerUnit (missing valuation) gives null initial and current values.
+ */
+export function calculateRow(
+  itemName: string,
+  initialCount: number,
+  itemsAdded: number,
+  itemsSubtracted: number,
+  valuePerUnit: number | null,
+): InventoryRow {
+  const currentCount = initialCount + itemsAdded - itemsSubtracted;
+  const initialValue =
+    valuePerUnit === null ? null : initialCount * valuePerUnit;
+  const currentValue =
+    valuePerUnit === null ? null : currentCount * valuePerUnit;
 
   return {
-    itemName: input.itemName,
-    initialCount: input.initialCount,
-    initialValue: round(input.initialCount * input.valuePerUnit),
-    quantitySub: input.quantitySub,
-    quantityAdd: input.quantityAdd,
+    itemName,
+    initialCount,
+    initialValue,
+    itemsSubtracted,
+    itemsAdded,
     currentCount,
-    currentValue: round(currentCount * input.valuePerUnit),
+    currentValue,
   };
 }

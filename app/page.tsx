@@ -23,13 +23,19 @@ export default function Home() {
   const { data, isPending, isError, error } = useQuery({
     queryKey: qk.dashboard(selectedYear, selectedLocation),
     queryFn: () => fetchDashboard(selectedYear, selectedLocation),
-    // Don't retry 422 errors (missing valuations); retrying can't fix them.
+    gcTime: 0, // don't keep old results, so every change shows loading
+    // Don't retry 422 errors; retrying can't fix them.
     retry: (failureCount, err) =>
       !(err instanceof DashboardApiError && err.status === 422) &&
       failureCount < 3,
   });
 
   const summary = data?.summary;
+  const rows = data?.rows ?? [];
+
+  const hasMissingValuations = rows.some(
+    (row) => row.initialValue === null || row.currentValue === null
+  );
 
   const summaryMetrics = summary
     ? [
@@ -37,12 +43,20 @@ export default function Home() {
         { id: "incoming", label: "Items added", value: summary.totalItemsAdded },
         { id: "outgoing", label: "Items distributed", value: summary.totalItemsSubtracted },
         { id: "current-count", label: "Current count", value: summary.totalCurrentCount, emphasized: true },
-        { id: "current-value", label: "Current value", value: currency.format(summary.totalCurrentValue), emphasized: true },
+        {
+          id: "current-value",
+          label: "Current value",
+          value:
+            summary.totalCurrentValue === null
+              ? null
+              : currency.format(summary.totalCurrentValue),
+          emphasized: true,
+        },
       ]
     : [];
 
   // The table uses slightly different field names than the inventory library
-  const tableRows = (data?.rows ?? []).map((row) => ({
+  const tableRows = rows.map((row) => ({
     item: row.itemName,
     initialCount: row.initialCount,
     initialValue: row.initialValue,
@@ -51,11 +65,6 @@ export default function Home() {
     currentCount: row.currentCount,
     currentValue: row.currentValue,
   }));
-
-  const errorMessage =
-    error instanceof DashboardApiError && error.code === "MISSING_VALUATIONS"
-      ? `Inventory valuations haven't been entered for ${selectedYear}, so this year can't be displayed. Please choose a different year.`
-      : `Could not load inventory: ${error?.message}`;
 
   return (
     <main className="min-h-screen bg-background px-6 py-8 md:px-10">
@@ -78,10 +87,20 @@ export default function Home() {
         <p className="text-sm text-muted-foreground">Loading inventory...</p>
       ) : isError ? (
         <p role="alert" className="text-sm text-destructive">
-          {errorMessage}
+          Could not load inventory: {error.message}
         </p>
       ) : (
         <>
+          {hasMissingValuations && (
+            <p
+              role="status"
+              className="mb-6 rounded-md border border-border bg-muted px-4 py-3 text-sm text-foreground"
+            >
+              Some items are missing a {selectedYear} valuation, so their
+              values show as "-" and the total value cannot be calculated.
+            </p>
+          )}
+
           <section className="mb-6">
             <InventorySummary
               title="Annual Inventory Summary"

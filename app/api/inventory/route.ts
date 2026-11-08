@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import type { Location } from "@/generated/prisma/enums";
 import { getDashboard } from "@/lib/inventory/get-dashboard";
-import { MissingValuationsError } from "@/lib/inventory/get-inventory-query";
 
 export const dynamic = "force-dynamic";
 
@@ -29,13 +28,6 @@ export async function GET(request: Request) {
     const data = await getDashboard(year, location as Location);
     return NextResponse.json({ data });
   } catch (error) {
-    if (error instanceof MissingValuationsError) {
-      return NextResponse.json(
-        { error: error.message, code: "MISSING_VALUATIONS", year: error.year },
-        { status: 422 },
-      );
-    }
-
     const message =
       error instanceof Error ? error.message : "Unable to load inventory.";
     return NextResponse.json({ error: message }, { status: 500 });
