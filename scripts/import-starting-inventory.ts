@@ -13,6 +13,7 @@ type InputRecord = {
 
 type PreparedRecord = InputRecord & { itemId: number };
 
+/** Validates and normalizes the JSON records before any database writes occur. */
 function validateInput(value: unknown): InputRecord[] {
   if (!Array.isArray(value)) throw new Error("The JSON file must contain an array of records.");
 
@@ -47,6 +48,7 @@ function validateInput(value: unknown): InputRecord[] {
   });
 }
 
+/** Imports starting inventory records from the JSON file passed on the command line. */
 async function main() {
   const file = process.argv[2];
   if (!file) throw new Error("Usage: import-starting-inventory <path-to-json-file>");
@@ -74,14 +76,16 @@ async function main() {
     const skipped = prepared.filter(({ itemId, year, location }) => existingKeys.has(JSON.stringify([itemId, year, location])));
 
     if (toCreate.length) {
-      await tx.startingInventory.createMany({
+      const created = await tx.startingInventory.createMany({
         data: toCreate.map(({ itemId, year, location, startingQuantity }) => ({
           itemId,
           year,
           location: location as Location,
           startingQuantity,
         })),
+        skipDuplicates: true,
       });
+      return { imported: created.count, skipped };
     }
     return { imported: toCreate.length, skipped };
   });

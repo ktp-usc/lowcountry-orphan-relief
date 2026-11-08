@@ -17,6 +17,7 @@ export interface InventorySummary {
   totalCurrentValue: number;
 }
 
+/** Totals inventory counts and values across all supplied rows. */
 export function summarizeInventory(rows: InventoryRow[]): InventorySummary {
   return rows.reduce<InventorySummary>(
     (summary, row) => ({

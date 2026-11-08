@@ -108,6 +108,14 @@ Locations are `LOWCOUNTRY` and `MIDLANDS`; source types are `INVENTORY` and
 `REFERRAL`. Both locations share these tables. Activity location and timestamp
 come from the related source submission rather than being duplicated.
 
+Import opening counts from a JSON array with
+`npm run import:starting-inventory -- path/to/starting-inventory.json`.
+The expected record shape is shown in
+[`examples/starting-inventory.example.json`](examples/starting-inventory.example.json).
+The importer requires a configured `DATABASE_URL`, validates every item code
+and location before writing, and skips records already present for that item,
+year and location.
+
 Jotform IDs are strings to avoid JavaScript integer precision loss. Each
 activity references its source through **both** `jotformFormId` and
 `jotformSubmissionId`, which must match the same submission. This also permits
