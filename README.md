@@ -163,8 +163,8 @@ counts, zero valuations and missing valuations; those fixtures are rolled back.
 database. Both test commands compile the query and generated client first, so
 they run on every Node version supported by this project.
 
-`getInventory(year, location)` returns `itemName`, `initialCount`, `quantityAdd`,
-`quantitySub` and `valuePerUnit` for each item. An item without a valuation for the requested year causes
+`getInventory(year, location)` returns `itemName`, `initialCount`, `itemsAdded`,
+`itemsSubtracted` and `valuePerUnit` for each item. An item without a valuation for the requested year causes
 an explicit error instead of being silently omitted. Missing opening counts and
 activity produce zero. The reporting year uses UTC boundaries.
 

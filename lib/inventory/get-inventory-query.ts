@@ -5,8 +5,8 @@ export type InventoryCalculationInput = {
   itemName: string;
   initialCount: number;
   valuePerUnit: number;
-  quantitySub: number;
-  quantityAdd: number;
+  itemsSubtracted: number;
+  itemsAdded: number;
 };
 
 type InventoryQueryClient = Pick<PrismaClient, "item">;
@@ -62,19 +62,19 @@ export async function queryInventoryRows(
       throw new Error(`Missing ${year} valuation for ${item.displayName}.`);
     }
 
-    let quantitySub = 0;
-    let quantityAdd = 0;
+    let itemsSubtracted = 0;
+    let itemsAdded = 0;
     for (const activity of item.inventoryActivities) {
-      if (activity.direction === "IN") quantityAdd += activity.quantity;
-      else quantitySub += activity.quantity;
+      if (activity.direction === "IN") itemsAdded += activity.quantity;
+      else itemsSubtracted += activity.quantity;
     }
 
     return {
       itemName: item.displayName,
       initialCount: item.startingInventories[0]?.startingQuantity ?? 0,
       valuePerUnit: valuation.valuePerUnit.toNumber(),
-      quantitySub,
-      quantityAdd,
+      itemsSubtracted,
+      itemsAdded,
     };
   });
 }

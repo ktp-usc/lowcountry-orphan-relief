@@ -66,14 +66,14 @@ async function verifyTransactionalFixtures(prisma, queryInventoryRows) {
       assert.equal(lowcountry.length, count);
       assert.equal(midlands.length, count);
       assert.deepEqual(lowcountry.find((row) => row.itemName === active.displayName), {
-        itemName: active.displayName, initialCount: 10, valuePerUnit: 2.5, quantityAdd: 5, quantitySub: 4,
+        itemName: active.displayName, initialCount: 10, valuePerUnit: 2.5, itemsAdded: 5, itemsSubtracted: 4,
       });
       assert.deepEqual(midlands.find((row) => row.itemName === active.displayName), {
-        itemName: active.displayName, initialCount: 20, valuePerUnit: 2.5, quantityAdd: 7, quantitySub: 1,
+        itemName: active.displayName, initialCount: 20, valuePerUnit: 2.5, itemsAdded: 7, itemsSubtracted: 1,
       });
       for (const rows of [lowcountry, midlands]) {
         assert.deepEqual(rows.find((row) => row.itemName === zero.displayName), {
-          itemName: zero.displayName, initialCount: 0, valuePerUnit: 0, quantityAdd: 0, quantitySub: 0,
+          itemName: zero.displayName, initialCount: 0, valuePerUnit: 0, itemsAdded: 0, itemsSubtracted: 0,
         });
       }
       await tx.item.create({ data: { code: `${prefix}_UNVALUED`, displayName: `${prefix} unvalued` } });
@@ -110,10 +110,10 @@ async function main() {
     assert.equal(midlands.length, itemCount);
     const mensName = "Men's Tops (Shirts, Sweaters & Sweatshirts)";
     assert.deepEqual(lowcountry.find((row) => row.itemName === mensName), {
-      itemName: mensName, initialCount: 100, valuePerUnit: 10.12, quantitySub: 5, quantityAdd: 20,
+      itemName: mensName, initialCount: 100, valuePerUnit: 10.12, itemsSubtracted: 5, itemsAdded: 20,
     });
     assert.deepEqual(midlands.find((row) => row.itemName === mensName), {
-      itemName: mensName, initialCount: 60, valuePerUnit: 10.12, quantitySub: 4, quantityAdd: 12,
+      itemName: mensName, initialCount: 60, valuePerUnit: 10.12, itemsSubtracted: 4, itemsAdded: 12,
     });
     await verifyTransactionalFixtures(prisma, queryInventoryRows);
     console.log("PASS: seeded query totals, year/location boundaries, all items, zero/missing openings, valuations and fixture rollback.");

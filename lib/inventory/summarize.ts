@@ -2,8 +2,8 @@ export interface InventoryRow {
   itemName: string;
   initialCount: number;
   initialValue: number;
-  quantitySub: number;
-  quantityAdd: number;
+  itemsSubtracted: number;
+  itemsAdded: number;
   currentCount: number;
   currentValue: number;
 }
@@ -22,8 +22,8 @@ export function summarizeInventory(rows: InventoryRow[]): InventorySummary {
     (summary, row) => ({
       totalInitialCount: summary.totalInitialCount + row.initialCount,
       totalInitialValue: summary.totalInitialValue + row.initialValue,
-      totalItemsSubtracted: summary.totalItemsSubtracted + row.quantitySub,
-      totalItemsAdded: summary.totalItemsAdded + row.quantityAdd,
+      totalItemsSubtracted: summary.totalItemsSubtracted + row.itemsSubtracted,
+      totalItemsAdded: summary.totalItemsAdded + row.itemsAdded,
       totalCurrentCount: summary.totalCurrentCount + row.currentCount,
       totalCurrentValue: summary.totalCurrentValue + row.currentValue,
     }),
