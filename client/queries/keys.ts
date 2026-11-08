@@ -1,3 +1,4 @@
 export const qk = {
-    /* react-query keys here */
+  dashboard: (year: string, location: string) =>
+    ["dashboard", year, location] as const,
 };

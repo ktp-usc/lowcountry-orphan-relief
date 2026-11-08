@@ -138,10 +138,16 @@ test("invalid year is rejected before querying", async () => {
   assert.equal(client.calls.length, 0);
 });
 
-test("an item without a yearly valuation raises an explicit error", async () => {
+test("an item without a yearly valuation returns a null valuePerUnit", async () => {
   const items = seededItems();
   items.push({ id: 1000, code: "UNVALUED", displayName: "Unvalued item", valuations: [], startingInventories: [], inventoryActivities: [] });
-  await assert.rejects(queryInventoryRows(clientFor(items), 2026, "LOWCOUNTRY"), /Missing 2026 valuation for Unvalued item/);
+  const rows = await queryInventoryRows(clientFor(items), 2026, "LOWCOUNTRY");
+  const unvalued = rows.find((row) => row.itemName === "Unvalued item");
+  assert.ok(unvalued, "the unvalued item is still returned");
+  assert.strictEqual(unvalued.valuePerUnit, null);
+  assert.strictEqual(unvalued.initialCount, 0);
+  assert.strictEqual(unvalued.quantityAdd, 0);
+  assert.strictEqual(unvalued.quantitySub, 0);
 });
 
 test("invalid locations are rejected before querying", async () => {
