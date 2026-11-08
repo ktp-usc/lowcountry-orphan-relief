@@ -4,10 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "postinstall": "prisma generate",
     "prebuild": "prisma generate",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "db:seed": "prisma db seed",
+    "db:seed:demo": "prisma db seed -- --demo",
     "test:normalize:inventory": "node --test tests/normalize-inventory.test.mjs",
     "test:save:submission": "node --test tests/save-submission.test.mjs"
   },

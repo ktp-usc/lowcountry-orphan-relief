@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
 import ts from "typescript";
 
@@ -12,7 +12,7 @@ async function loadSaveSubmission() {
   const sourcePath = resolve(projectRoot, "lib/inventory/save-submission.ts");
 
   if (process.features.typescript) {
-    return import(`file://${sourcePath.replace(/\\/g, "/")}`);
+    return import(pathToFileURL(sourcePath).href);
   }
 
   const source = await readFile(sourcePath, "utf8");
