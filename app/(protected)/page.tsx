@@ -8,6 +8,7 @@ import { qk } from "@/client/queries/keys";
 import { DashboardFilters } from "@/components/DashboardFilters";
 import InventorySummary from "@/components/inventory-summary";
 import InventoryTable from "@/components/inventory-table";
+import { SignOutButton } from "@/components/sign-out-button";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -68,10 +69,11 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-background px-6 py-8 md:px-10">
-      <header className="mb-8">
+      <header className="mb-8 flex items-start justify-between gap-4">
         <h1 className="text-2xl font-semibold text-foreground">
           Lowcountry Orphan Relief Inventory
         </h1>
+        <SignOutButton />
       </header>
 
       <section className="mb-6">

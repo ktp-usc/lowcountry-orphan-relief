@@ -1,3 +1,5 @@
+import { isEmailAllowed } from "@/lib/allowlist";
+import { getSession } from "@/lib/session";
 import { NextResponse } from "next/server";
 
 import type { Location } from "@/generated/prisma/enums";
@@ -6,6 +8,13 @@ import { getDashboard } from "@/lib/inventory/get-dashboard";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+    const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!isEmailAllowed(session.user.email)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const params = new URL(request.url).searchParams;
   const year = Number(params.get("year"));
   const location = params.get("location");
