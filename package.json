@@ -27,7 +27,9 @@
     "db:test:inventory": "node scripts/test-inventory-query.mjs",
     "test:inventory:unit": "node scripts/test-inventory-query.mjs --unit",
     "db:check:seed": "node scripts/check-inventory-seed.mjs",
-    "check:inventory": "node scripts/check-inventory.mjs"
+    "check:inventory": "node scripts/check-inventory.mjs",
+    "test:normalize:inventory": "node --test tests/normalize-inventory.test.mjs"
+
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",
@@ -35,8 +37,8 @@
     "@tanstack/react-query": "^5.90.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "dotenv": "^17.2.3",
     "cn": "^0.5.0",
+    "dotenv": "^17.2.3",
     "lucide-react": "^0.575.0",
     "next": "16.4.3",
     "radix-ui": "^1.4.3",
