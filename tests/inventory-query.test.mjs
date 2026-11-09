@@ -81,6 +81,18 @@ test("seed fixtures: Midlands is isolated from Lowcountry", async () => {
   assert.equal(row.quantitySub, 4);
 });
 
+test("seed fixtures: ALL aggregates Lowcountry and Midlands", async () => {
+  const rows = await queryInventoryRows(clientFor(seededItems()), 2026, "ALL");
+  assert.equal(rows.length, 35);
+  assert.deepEqual(rows.find((r) => r.itemName === mensName), {
+    itemName: mensName,
+    initialCount: 160,
+    valuePerUnit: 10.12,
+    quantityAdd: 32,
+    quantitySub: 9,
+  });
+});
+
 test("includes missing openings and no activity with zeros", async () => {
   const rows = await queryInventoryRows(clientFor(seededItems()), 2026, "LOWCOUNTRY");
   assert.deepEqual(rows.find((r) => r.itemName === "Diapers"), {
@@ -151,7 +163,7 @@ test("an item without a yearly valuation returns a null valuePerUnit", async () 
 });
 
 test("invalid locations are rejected before querying", async () => {
-  for (const location of [undefined, null, "", "ALL", "MIDLANDS ", 123]) {
+  for (const location of [undefined, null, "", "MIDLANDS ", 123]) {
     const client = clientFor(seededItems());
     await assert.rejects(queryInventoryRows(client, 2026, location), /location/i);
     assert.equal(client.calls.length, 0);

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-import type { Location } from "@/generated/prisma/enums";
 import { getDashboard } from "@/lib/inventory/get-dashboard";
 
 export const dynamic = "force-dynamic";
@@ -17,15 +16,19 @@ export async function GET(request: Request) {
     );
   }
 
-  if (location !== "LOWCOUNTRY" && location !== "MIDLANDS") {
+  if (
+    location !== "ALL" &&
+    location !== "LOWCOUNTRY" &&
+    location !== "MIDLANDS"
+  ) {
     return NextResponse.json(
-      { error: "Provide location LOWCOUNTRY or MIDLANDS." },
+      { error: "Provide location ALL, LOWCOUNTRY, or MIDLANDS." },
       { status: 400 },
     );
   }
 
   try {
-    const data = await getDashboard(year, location as Location);
+    const data = await getDashboard(year, location);
     return NextResponse.json({ data });
   } catch (error) {
     const message =

@@ -1,13 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { DashboardFilters, type DashboardLocation } from "@/components/DashboardFilters";
 import { DashboardApiError, fetchDashboard } from "@/client/api/inventory";
 import { qk } from "@/client/queries/keys";
-import { DashboardFilters } from "@/components/DashboardFilters";
 import InventorySummary from "@/components/inventory-summary";
 import InventoryTable from "@/components/inventory-table";
 
@@ -16,19 +14,21 @@ const currency = new Intl.NumberFormat("en-US", {
   currency: "USD",
 });
 
-const rows = sampleInputs.map(calculateRow);
-const summary = summarizeInventory(rows);
+const locationLabels: Record<DashboardLocation, string> = {
+  ALL: "All Locations",
+  LOWCOUNTRY: "Low Country",
+  MIDLANDS: "Midlands",
+};
+
 export default function Home() {
-  const [selectedYear, setSelectedYear] = useState(
-    String(new Date().getFullYear())
-  );
-  const [selectedLocation, setSelectedLocation] = useState("LOWCOUNTRY");
+  const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
+  const [selectedLocation, setSelectedLocation] =
+    useState<DashboardLocation>("ALL");
 
   const { data, isPending, isError, error } = useQuery({
     queryKey: qk.dashboard(selectedYear, selectedLocation),
     queryFn: () => fetchDashboard(selectedYear, selectedLocation),
-    gcTime: 0, // don't keep old results, so every change shows loading
-    // Don't retry 422 errors; retrying can't fix them.
+    gcTime: 0,
     retry: (failureCount, err) =>
       !(err instanceof DashboardApiError && err.status === 422) &&
       failureCount < 3,
@@ -38,15 +38,24 @@ export default function Home() {
   const rows = data?.rows ?? [];
 
   const hasMissingValuations = rows.some(
-    (row) => row.initialValue === null || row.currentValue === null
+    (row) => row.initialValue === null || row.currentValue === null,
   );
 
   const summaryMetrics = summary
     ? [
         { id: "initial-count", label: "Initial count", value: summary.totalInitialCount },
         { id: "incoming", label: "Items added", value: summary.totalItemsAdded },
-        { id: "outgoing", label: "Items distributed", value: summary.totalItemsSubtracted },
-        { id: "current-count", label: "Current count", value: summary.totalCurrentCount, emphasized: true },
+        {
+          id: "outgoing",
+          label: "Items distributed",
+          value: summary.totalItemsSubtracted,
+        },
+        {
+          id: "current-count",
+          label: "Current count",
+          value: summary.totalCurrentCount,
+          emphasized: true,
+        },
         {
           id: "current-value",
           label: "Current value",
@@ -59,16 +68,6 @@ export default function Home() {
       ]
     : [];
 
-const tableRows = rows.map((row) => ({
-  item: row.itemName,
-  initialCount: row.initialCount,
-  initialValue: row.initialValue,
-  itemsSubtracted: row.quantitySub,
-  itemsAdded: row.quantityAdd,
-  currentCount: row.currentCount,
-  currentValue: row.currentValue,
-}));
-  // The table uses slightly different field names than the inventory library
   const tableRows = rows.map((row) => ({
     item: row.itemName,
     initialCount: row.initialCount,
@@ -79,18 +78,6 @@ const tableRows = rows.map((row) => ({
     currentValue: row.currentValue,
   }));
 
-const locationLabels: Record<DashboardLocation, string> = {
-  ALL: "All Locations",
-  LOWCOUNTRY: "Low Country",
-  MIDLANDS: "Midlands",
-};
-
-export default function Home() {
-  const [selectedYear, setSelectedYear] = useState(
-    String(new Date().getFullYear()),
-  );
-  const [selectedLocation, setSelectedLocation] = useState<DashboardLocation>("ALL");
-
   const headerTitle = useMemo(
     () => `${locationLabels[selectedLocation]} Inventory ${selectedYear}`,
     [selectedLocation, selectedYear],
@@ -99,9 +86,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background px-6 py-8 md:px-10">
       <header className="mb-8">
-        <h1 className="text-2xl font-semibold text-foreground">
-          Lowcountry Orphan Relief Inventory
-        </h1>
+        <h1 className="text-2xl font-semibold text-foreground">{headerTitle}</h1>
       </header>
 
       <section className="mb-6">
@@ -126,8 +111,8 @@ export default function Home() {
               role="status"
               className="mb-6 rounded-md border border-border bg-muted px-4 py-3 text-sm text-foreground"
             >
-              Some items are missing a {selectedYear} valuation, so their
-              values show as "-" and the total value cannot be calculated.
+              Some items are missing a {selectedYear} valuation, so their values show as
+              &quot;-&quot; and the total value cannot be calculated.
             </p>
           )}
 
@@ -139,14 +124,8 @@ export default function Home() {
             />
           </section>
 
-      <section className="w-full">
-        <h2 className="mb-4 text-lg font-semibold text-foreground">Inventory</h2>
-        <InventoryTable rows={tableRows} />
-      </section>
           <section className="w-full">
-            <h2 className="mb-4 text-lg font-semibold text-foreground">
-              Inventory
-            </h2>
+            <h2 className="mb-4 text-lg font-semibold text-foreground">Inventory</h2>
             <InventoryTable rows={tableRows} />
           </section>
         </>
