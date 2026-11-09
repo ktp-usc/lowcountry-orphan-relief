@@ -182,7 +182,7 @@ function adaptAnswerObject(value: Record<string, unknown>): string | number | bo
     return answerValue;
   }
 
-  return String(answerValue);
+  throw new Error(`Unsupported answer type: ${typeof answerValue}`);
 }
 
 function extractAnswerValue(value: JotformAnswerValue): string | number | boolean | null {

@@ -46,7 +46,8 @@ It does not hit the database or the Jotform API. It accepts:
 - a Jotform form ID
 - a submission object matching the Jotform API payload shape
 
-Then it maps the configured field IDs to item codes, filters out blank/zero/negative values, and returns the normalized result.
+Then it maps the configured field IDs to item codes, skips blank/zero values,
+and rejects negative or otherwise invalid quantities.
 
 #### Example usage
 ```bash
@@ -287,3 +288,31 @@ still advance. Run `npm run lint` and `npm run build` for application checks.
 
 ### Notes
 This script is meant for local inspection and validation. It does not write or store any secret outside of `.env`.
+
+### Submission import helper
+
+`lib/inventory/save-submission.ts` persists normalized importer output using Prisma.
+
+Behavior:
+- Resolves each activity `itemCode` to `Item.id` from the `Item` table.
+- Throws when any code is missing, and does not save that submission or any of
+  its activities.
+- Saves `SourceSubmission` and `InventoryActivity` rows in one transaction.
+- Enforces source-direction consistency (`INVENTORY` -> `IN`, `REFERRAL` -> `OUT`).
+- Skips existing `jotformFormId + jotformSubmissionId` combinations.
+- Returns either `saved` (with source ID and activity count) or `skipped`.
+
+Run importer unit tests:
+```bash
+npm run test:save:submission
+```
+
+Run the real Prisma integration test against a non-production database:
+```bash
+INTEGRATION_DATABASE_URL=postgresql://... npm run test:save:submission:integration
+```
+
+The integration test uses the generated Prisma client, writes one uniquely tagged
+submission, verifies it through Prisma reads, tests duplicate skip and invalid
+item-code rejection, then deletes only its own test rows.
+

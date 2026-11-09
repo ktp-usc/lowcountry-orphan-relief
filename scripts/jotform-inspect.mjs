@@ -221,7 +221,7 @@ function getAllowlistForForm(form) {
     return null;
   }
 
-  const id = Number(form.id);
+  const id = String(form.id);
   if (TARGET_FORM_IDS.inventory.includes(id)) {
     return SAFE_FIELD_IDS.inventory;
   }
