@@ -16,10 +16,9 @@ const years = Array.from({ length: 5 }, (_, index) =>
 );
 
 const locations = [
-  { value: "ALL", label: "All Locations" },
-  { value: "LOWCOUNTRY", label: "Low Country" },
+  { value: "LOWCOUNTRY", label: "Lowcountry" },
   { value: "MIDLANDS", label: "Midlands" },
-] as const;
+];
 
 type DashboardFiltersProps = {
   selectedYear: string;

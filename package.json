@@ -2,13 +2,34 @@
   "name": "sc-economics-2",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^20.19 || ^22.12 || >=24.0"
+  },
   "scripts": {
-    "dev": "next dev",
-    "prebuild": "prisma generate",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "test:jotform": "node scripts/test-jotform.mjs",
+    "test:jotform:unit": "node --test tests/jotform-fetch.test.mjs",
+    "test:referral": "node --test tests/normalize-referral.test.mjs",
+    "postinstall": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:validate": "prisma validate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "db:test": "prisma db execute --file prisma/tests/inventory-constraints.sql",
+    "db:seed": "prisma db seed",
+    "db:seed:demo": "prisma db seed -- --demo",
+    "db:test:seed": "node scripts/test-inventory-seed.mjs",
+    "db:test:inventory": "node scripts/test-inventory-query.mjs",
+    "test:inventory:unit": "node scripts/test-inventory-query.mjs --unit",
+    "db:check:seed": "node scripts/check-inventory-seed.mjs",
+    "check:inventory": "node scripts/check-inventory.mjs",
     "test:normalize:inventory": "node --test tests/normalize-inventory.test.mjs"
+
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",
