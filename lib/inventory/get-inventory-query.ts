@@ -4,9 +4,9 @@ import type { Location } from "../../generated/prisma/enums.js";
 export type InventoryCalculationInput = {
   itemName: string;
   initialCount: number;
-    valuePerUnit: number | null;
-  quantitySub: number;
-  quantityAdd: number;
+  valuePerUnit: number | null;
+  itemsSubtracted: number;
+  itemsAdded: number;
 };
 
 type InventoryQueryClient = Pick<PrismaClient, "item">;
@@ -59,19 +59,19 @@ export async function queryInventoryRows(
   return items.map((item) => {
     const valuation = item.valuations[0];
 
-    let quantitySub = 0;
-    let quantityAdd = 0;
+    let itemsSubtracted = 0;
+    let itemsAdded = 0;
     for (const activity of item.inventoryActivities) {
-      if (activity.direction === "IN") quantityAdd += activity.quantity;
-      else quantitySub += activity.quantity;
+      if (activity.direction === "IN") itemsAdded += activity.quantity;
+      else itemsSubtracted += activity.quantity;
     }
 
     return {
       itemName: item.displayName,
       initialCount: item.startingInventories[0]?.startingQuantity ?? 0,
       valuePerUnit: valuation ? valuation.valuePerUnit.toNumber() : null,
-      quantitySub,
-      quantityAdd,
+      itemsSubtracted,
+      itemsAdded,
     };
   });
 }

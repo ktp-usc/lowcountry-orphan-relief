@@ -17,25 +17,15 @@ export async function getDashboard(
 ): Promise<DashboardData> {
   const inputs = await getInventory(year, location);
 
-  const rows: InventoryRow[] = inputs.map((input) => {
-    const row = calculateRow(
-      input.itemName,
-      input.initialCount,
-      input.quantityAdd,
-      input.quantitySub,
-      input.valuePerUnit,
-    );
-    // The summary function uses quantityAdd/quantitySub, so rename here
-    return {
-      itemName: row.itemName,
-      initialCount: row.initialCount,
-      initialValue: row.initialValue,
-      quantitySub: row.itemsSubtracted,
-      quantityAdd: row.itemsAdded,
-      currentCount: row.currentCount,
-      currentValue: row.currentValue,
-    };
-  });
+  const rows: InventoryRow[] = inputs.map((input) =>
+      calculateRow({
+        itemName: input.itemName,
+        initialCount: input.initialCount,
+        itemsAdded: input.itemsAdded,
+        itemsSubtracted: input.itemsSubtracted,
+        valuePerUnit: input.valuePerUnit,
+      }),
+  );
 
   const summary = summarizeInventory(rows);
   return { rows, summary };

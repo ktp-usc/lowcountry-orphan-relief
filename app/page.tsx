@@ -60,8 +60,8 @@ export default function Home() {
     item: row.itemName,
     initialCount: row.initialCount,
     initialValue: row.initialValue,
-    itemsSubtracted: row.quantitySub,
-    itemsAdded: row.quantityAdd,
+    itemsSubtracted: row.itemsSubtracted,
+    itemsAdded: row.itemsAdded,
     currentCount: row.currentCount,
     currentValue: row.currentValue,
   }));
