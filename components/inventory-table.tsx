@@ -10,11 +10,11 @@ import {
 export type InventoryRow = {
   item: string;
   initialCount: number;
-  initialValue: number;
+  initialValue: number | null;
   itemsAdded: number;
   itemsSubtracted: number;
   currentCount: number;
-  currentValue: number;
+  currentValue: number | null;
 };
 
 type InventoryTableProps = {
@@ -27,6 +27,8 @@ const currency = new Intl.NumberFormat("en-US", {
 });
 
 const quantity = new Intl.NumberFormat("en-US");
+const formatValue = (value: number | null) =>
+  value === null ? "-" : currency.format(value);
 
 const headings = [
   "Item",
@@ -86,7 +88,7 @@ export default function InventoryTable({ rows }: InventoryTableProps) {
                 </TableCell>
 
                 <TableCell className="px-3 py-2.5 text-right font-normal tabular-nums">
-                  {currency.format(row.initialValue)}
+                  {formatValue(row.initialValue)}
                 </TableCell>
 
                 <TableCell className="px-3 py-2.5 text-right font-normal tabular-nums">
@@ -104,7 +106,7 @@ export default function InventoryTable({ rows }: InventoryTableProps) {
                 </TableCell>
 
                 <TableCell className="px-3 py-2.5 text-right font-medium tabular-nums">
-                  {currency.format(row.currentValue)}
+                  {formatValue(row.currentValue)}
                 </TableCell>
               </TableRow>
             ))

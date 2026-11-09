@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "dev": "next dev --webpack",
+    "build": "prisma generate && next build --webpack",
     "dev": "next dev",
     "postinstall": "prisma generate",
     "prebuild": "prisma generate",
@@ -11,6 +13,8 @@
     "lint": "eslint",
     "test:jotform": "node scripts/test-jotform.mjs",
     "test:jotform:unit": "node --test tests/jotform-fetch.test.mjs",
+    "test:referral": "node --test tests/normalize-referral.test.mjs",
+    "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate dev",

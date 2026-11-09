@@ -1,39 +1,36 @@
 export interface InventoryRow {
   itemName: string;
   initialCount: number;
-  initialValue: number;
+  initialValue: number | null;
   quantitySub: number;
   quantityAdd: number;
   currentCount: number;
-  currentValue: number;
+  currentValue: number | null;
 }
 
 export interface InventorySummary {
   totalInitialCount: number;
-  totalInitialValue: number;
+  totalInitialValue: number | null;
   totalItemsSubtracted: number;
   totalItemsAdded: number;
   totalCurrentCount: number;
-  totalCurrentValue: number;
+  totalCurrentValue: number | null;
 }
 
 export function summarizeInventory(rows: InventoryRow[]): InventorySummary {
-  return rows.reduce<InventorySummary>(
-    (summary, row) => ({
-      totalInitialCount: summary.totalInitialCount + row.initialCount,
-      totalInitialValue: summary.totalInitialValue + row.initialValue,
-      totalItemsSubtracted: summary.totalItemsSubtracted + row.quantitySub,
-      totalItemsAdded: summary.totalItemsAdded + row.quantityAdd,
-      totalCurrentCount: summary.totalCurrentCount + row.currentCount,
-      totalCurrentValue: summary.totalCurrentValue + row.currentValue,
-    }),
-    {
-      totalInitialCount: 0,
-      totalInitialValue: 0,
-      totalItemsSubtracted: 0,
-      totalItemsAdded: 0,
-      totalCurrentCount: 0,
-      totalCurrentValue: 0,
-    },
-  );
+  const missingInitialValue = rows.some((row) => row.initialValue === null);
+  const missingCurrentValue = rows.some((row) => row.currentValue === null);
+
+  return {
+    totalInitialCount: rows.reduce((sum, row) => sum + row.initialCount, 0),
+    totalInitialValue: missingInitialValue
+      ? null
+      : rows.reduce((sum, row) => sum + (row.initialValue ?? 0), 0),
+    totalItemsSubtracted: rows.reduce((sum, row) => sum + row.quantitySub, 0),
+    totalItemsAdded: rows.reduce((sum, row) => sum + row.quantityAdd, 0),
+    totalCurrentCount: rows.reduce((sum, row) => sum + row.currentCount, 0),
+    totalCurrentValue: missingCurrentValue
+      ? null
+      : rows.reduce((sum, row) => sum + (row.currentValue ?? 0), 0),
+  };
 }
