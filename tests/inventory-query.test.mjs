@@ -68,7 +68,7 @@ test("seed fixtures: all 35 valued items and Lowcountry totals", async () => {
   const rows = await queryInventoryRows(clientFor(seededItems()), 2026, "LOWCOUNTRY");
   assert.equal(rows.length, 35);
   assert.deepEqual(rows.find((r) => r.itemName === mensName), {
-    itemName: mensName, initialCount: 100, valuePerUnit: 10.12, quantityAdd: 20, quantitySub: 5,
+    itemName: mensName, initialCount: 100, valuePerUnit: 10.12, itemsAdded: 20, itemsSubtracted: 5,
   });
 });
 
@@ -77,14 +77,14 @@ test("seed fixtures: Midlands is isolated from Lowcountry", async () => {
   assert.equal(rows.length, 35);
   const row = rows.find((r) => r.itemName === mensName);
   assert.equal(row.initialCount, 60);
-  assert.equal(row.quantityAdd, 12);
-  assert.equal(row.quantitySub, 4);
+  assert.equal(row.itemsAdded, 12);
+  assert.equal(row.itemsSubtracted, 4);
 });
 
 test("includes missing openings and no activity with zeros", async () => {
   const rows = await queryInventoryRows(clientFor(seededItems()), 2026, "LOWCOUNTRY");
   assert.deepEqual(rows.find((r) => r.itemName === "Diapers"), {
-    itemName: "Diapers", initialCount: 0, valuePerUnit: 7.25, quantityAdd: 0, quantitySub: 0,
+    itemName: "Diapers", initialCount: 0, valuePerUnit: 7.25, itemsAdded: 0, itemsSubtracted: 0,
   });
 });
 
@@ -101,8 +101,8 @@ test("sums multiple IN and OUT activities per item", async () => {
   item.inventoryActivities.push(movement("LOWCOUNTRY", "2026-05-01T12:00:00Z", "IN", 7));
   item.inventoryActivities.push(movement("LOWCOUNTRY", "2026-05-02T12:00:00Z", "OUT", 3));
   const row = (await queryInventoryRows(clientFor(items), 2026, "LOWCOUNTRY")).find((r) => r.itemName === mensName);
-  assert.equal(row.quantityAdd, 27);
-  assert.equal(row.quantitySub, 8);
+  assert.equal(row.itemsAdded, 27);
+  assert.equal(row.itemsSubtracted, 8);
 });
 
 test("year boundaries include January 1 and exclude next January 1", async () => {
@@ -114,8 +114,8 @@ test("year boundaries include January 1 and exclude next January 1", async () =>
     movement("LOWCOUNTRY", "2027-01-01T00:00:00.000Z", "OUT", 1000),
   );
   const row = (await queryInventoryRows(clientFor(items), 2026, "LOWCOUNTRY")).find((r) => r.itemName === mensName);
-  assert.equal(row.quantityAdd, 24);
-  assert.equal(row.quantitySub, 11);
+  assert.equal(row.itemsAdded, 24);
+  assert.equal(row.itemsSubtracted, 11);
 });
 
 test("opening and valuation records are selected by year", async () => {
@@ -129,7 +129,7 @@ test("opening and valuation records are selected by year", async () => {
   const row = (await queryInventoryRows(clientFor(items), 2027, "LOWCOUNTRY")).find((r) => r.itemName === mensName);
   assert.equal(row.initialCount, 123);
   assert.equal(row.valuePerUnit, 12.34);
-  assert.equal(row.quantityAdd, 0);
+  assert.equal(row.itemsAdded, 0);
 });
 
 test("invalid year is rejected before querying", async () => {
@@ -138,10 +138,16 @@ test("invalid year is rejected before querying", async () => {
   assert.equal(client.calls.length, 0);
 });
 
-test("an item without a yearly valuation raises an explicit error", async () => {
+test("an item without a yearly valuation returns a null valuePerUnit", async () => {
   const items = seededItems();
   items.push({ id: 1000, code: "UNVALUED", displayName: "Unvalued item", valuations: [], startingInventories: [], inventoryActivities: [] });
-  await assert.rejects(queryInventoryRows(clientFor(items), 2026, "LOWCOUNTRY"), /Missing 2026 valuation for Unvalued item/);
+  const rows = await queryInventoryRows(clientFor(items), 2026, "LOWCOUNTRY");
+  const unvalued = rows.find((row) => row.itemName === "Unvalued item");
+  assert.ok(unvalued, "the unvalued item is still returned");
+  assert.strictEqual(unvalued.valuePerUnit, null);
+  assert.strictEqual(unvalued.initialCount, 0);
+  assert.strictEqual(unvalued.itemsAdded, 0);
+  assert.strictEqual(unvalued.itemsSubtracted, 0);
 });
 
 test("invalid locations are rejected before querying", async () => {

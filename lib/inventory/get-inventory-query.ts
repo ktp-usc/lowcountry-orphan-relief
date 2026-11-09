@@ -4,17 +4,17 @@ import type { Location } from "../../generated/prisma/enums.js";
 export type InventoryCalculationInput = {
   itemName: string;
   initialCount: number;
-  valuePerUnit: number;
-  quantitySub: number;
-  quantityAdd: number;
+  valuePerUnit: number | null;
+  itemsSubtracted: number;
+  itemsAdded: number;
 };
 
 type InventoryQueryClient = Pick<PrismaClient, "item">;
 
 /**
  * Return every catalog item for a UTC reporting year and one location.
- * Missing opening counts and activity become zero. An absent yearly valuation
- * rejects the result so an incomplete inventory cannot appear complete.
+ * Missing opening counts and activity become zero. 
+ * A missing yearly valuation returns a null valuePerUnit for that item.
  */
 export async function queryInventoryRows(
   client: InventoryQueryClient,
@@ -58,23 +58,20 @@ export async function queryInventoryRows(
 
   return items.map((item) => {
     const valuation = item.valuations[0];
-    if (!valuation) {
-      throw new Error(`Missing ${year} valuation for ${item.displayName}.`);
-    }
 
-    let quantitySub = 0;
-    let quantityAdd = 0;
+    let itemsSubtracted = 0;
+    let itemsAdded = 0;
     for (const activity of item.inventoryActivities) {
-      if (activity.direction === "IN") quantityAdd += activity.quantity;
-      else quantitySub += activity.quantity;
+      if (activity.direction === "IN") itemsAdded += activity.quantity;
+      else itemsSubtracted += activity.quantity;
     }
 
     return {
       itemName: item.displayName,
       initialCount: item.startingInventories[0]?.startingQuantity ?? 0,
-      valuePerUnit: valuation.valuePerUnit.toNumber(),
-      quantitySub,
-      quantityAdd,
+      valuePerUnit: valuation ? valuation.valuePerUnit.toNumber() : null,
+      itemsSubtracted,
+      itemsAdded,
     };
   });
 }

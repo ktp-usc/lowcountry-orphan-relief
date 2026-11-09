@@ -14,9 +14,8 @@ const years = Array.from({ length: 5 }, (_, index) =>
 );
 
 const locations = [
-  "All Locations",
-  "Low Country",
-  "Midlands"
+  { value: "LOWCOUNTRY", label: "Lowcountry" },
+  { value: "MIDLANDS", label: "Midlands" },
 ];
 
 type DashboardFiltersProps = {
@@ -64,8 +63,8 @@ export function DashboardFilters({
 
           <SelectContent>
             {locations.map((location) => (
-              <SelectItem key={location} value={location}>
-                {location}
+              <SelectItem key={location.value} value={location.value}>
+                {location.label}
               </SelectItem>
             ))}
           </SelectContent>

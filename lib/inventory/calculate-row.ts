@@ -1,35 +1,39 @@
-export type RowInput = {
-  itemName: string;
-  initialCount: number;
-  quantityAdd: number;
-  quantitySub: number;
-  valuePerUnit: number;
-};
-
 export type InventoryRow = {
-  itemName: string;
-  initialCount: number;
-  initialValue: number;
-  quantitySub: number;
-  quantityAdd: number;
-  currentCount: number;
-  currentValue: number;
+    itemName: string;
+    initialCount: number;
+    initialValue: number | null;
+    itemsSubtracted: number;
+    itemsAdded: number;
+    currentCount: number;
+    currentValue: number | null;
 };
 
-/** Calculates an inventory row, preserving negative balances and unrounded values. */
-export function calculateRow(input: RowInput): InventoryRow {
-  const { itemName, initialCount, quantityAdd, quantitySub, valuePerUnit } = input;
-  const currentCount = initialCount + quantityAdd - quantitySub;
-  const initialValue = initialCount * valuePerUnit;
-  const currentValue = currentCount * valuePerUnit;
+export type RowInput = {
+    itemName: string;
+    initialCount: number;
+    itemsAdded: number;
+    itemsSubtracted: number;
+    valuePerUnit: number | null;
+};
 
-  return {
-    itemName,
-    initialCount,
-    initialValue,
-    quantitySub,
-    quantityAdd,
-    currentCount,
-    currentValue,
-  };
+export function calculateRow({
+         itemName,
+         initialCount,
+         itemsAdded,
+         itemsSubtracted,
+         valuePerUnit,
+     }: RowInput): InventoryRow {
+    const currentCount = initialCount + itemsAdded - itemsSubtracted;
+
+    return {
+        itemName,
+        initialCount,
+        initialValue:
+            valuePerUnit === null ? null : initialCount * valuePerUnit,
+        itemsSubtracted,
+        itemsAdded,
+        currentCount,
+        currentValue:
+            valuePerUnit === null ? null : currentCount * valuePerUnit,
+    };
 }
