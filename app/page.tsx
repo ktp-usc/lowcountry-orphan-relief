@@ -16,13 +16,7 @@ const currency = new Intl.NumberFormat("en-US", {
 
 export default function Home() {
   const [selectedYear, setSelectedYear] = useState(
-    String(new Date().getFullYear()),
-  );
-  const [selectedLocation, setSelectedLocation] = useState<DashboardLocation>("ALL");
-
-  const headerTitle = useMemo(
-    () => `${locationLabels[selectedLocation]} Inventory ${selectedYear}`,
-    [selectedLocation, selectedYear],
+    String(new Date().getFullYear())
   );
   const [selectedLocation, setSelectedLocation] = useState("LOWCOUNTRY");
 
@@ -75,7 +69,9 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background px-6 py-8 md:px-10">
       <header className="mb-8">
-        <h1 className="text-2xl font-semibold text-foreground">{headerTitle}</h1>
+        <h1 className="text-2xl font-semibold text-foreground">
+          Lowcountry Orphan Relief Inventory
+        </h1>
       </header>
 
       <section className="mb-6">

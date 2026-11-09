@@ -7,12 +7,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export type DashboardLocation = "ALL" | "LOWCOUNTRY" | "MIDLANDS";
-
 const currentYear = new Date().getFullYear();
 
 const years = Array.from({ length: 5 }, (_, index) =>
-  String(currentYear - index),
+  String(currentYear - index)
 );
 
 const locations = [
@@ -22,9 +20,9 @@ const locations = [
 
 type DashboardFiltersProps = {
   selectedYear: string;
-  selectedLocation: DashboardLocation;
+  selectedLocation: string;
   onYearChange: (year: string) => void;
-  onLocationChange: (location: DashboardLocation) => void;
+  onLocationChange: (location: string) => void;
 };
 
 export function DashboardFilters({
