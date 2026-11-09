@@ -1,4 +1,4 @@
-import type { DashboardLocation } from "./get-inventory-query";
+import type { Location } from "@/generated/prisma/enums";
 
 import { calculateRow } from "./calculate-row";
 import { getInventory } from "./get-inventory";
@@ -13,7 +13,7 @@ export type DashboardData = {
 // KAN-19 (database) -> KAN-12 (row math) -> KAN-13 (summary)
 export async function getDashboard(
   year: number,
-  location: DashboardLocation,
+  location: Location,
 ): Promise<DashboardData> {
   const inputs = await getInventory(year, location);
 

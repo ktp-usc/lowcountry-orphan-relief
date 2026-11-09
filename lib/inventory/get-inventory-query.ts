@@ -1,8 +1,6 @@
 import type { PrismaClient } from "../../generated/prisma/client.js";
 import type { Location } from "../../generated/prisma/enums.js";
 
-export type DashboardLocation = Location | "ALL";
-
 export type InventoryCalculationInput = {
   itemName: string;
   initialCount: number;
@@ -21,31 +19,17 @@ type InventoryQueryClient = Pick<PrismaClient, "item">;
 export async function queryInventoryRows(
   client: InventoryQueryClient,
   year: number,
-  location: DashboardLocation,
+  location: Location,
 ): Promise<InventoryCalculationInput[]> {
   if (!Number.isInteger(year) || year < 1900 || year > 9999) {
     throw new Error("Provide a reporting year between 1900 and 9999.");
   }
-  if (
-    location !== "ALL" &&
-    location !== "LOWCOUNTRY" &&
-    location !== "MIDLANDS"
-  ) {
-    throw new Error("Provide location ALL, LOWCOUNTRY, or MIDLANDS.");
+  if (location !== "LOWCOUNTRY" && location !== "MIDLANDS") {
+    throw new Error("Provide location LOWCOUNTRY or MIDLANDS.");
   }
 
   const yearStart = new Date(Date.UTC(year, 0, 1));
   const nextYearStart = new Date(Date.UTC(year + 1, 0, 1));
-  const startingInventoryWhere =
-    location === "ALL" ? { year } : { year, location };
-  const sourceSubmissionWhere =
-    location === "ALL"
-      ? { submissionDate: { gte: yearStart, lt: nextYearStart } }
-      : {
-          location,
-          submissionDate: { gte: yearStart, lt: nextYearStart },
-        };
-
   const items = await client.item.findMany({
     select: {
       displayName: true,
@@ -54,13 +38,16 @@ export async function queryInventoryRows(
         select: { valuePerUnit: true },
       },
       startingInventories: {
-        where: startingInventoryWhere,
+        where: { year, location },
         select: { startingQuantity: true },
       },
       inventoryActivities: {
         where: {
           sourceSubmission: {
-            is: sourceSubmissionWhere,
+            is: {
+              location,
+              submissionDate: { gte: yearStart, lt: nextYearStart },
+            },
           },
         },
         select: { direction: true, quantity: true },
@@ -79,14 +66,9 @@ export async function queryInventoryRows(
       else quantitySub += activity.quantity;
     }
 
-    const initialCount = item.startingInventories.reduce(
-      (sum, opening) => sum + opening.startingQuantity,
-      0,
-    );
-
     return {
       itemName: item.displayName,
-      initialCount,
+      initialCount: item.startingInventories[0]?.startingQuantity ?? 0,
       valuePerUnit: valuation ? valuation.valuePerUnit.toNumber() : null,
       quantitySub,
       quantityAdd,
