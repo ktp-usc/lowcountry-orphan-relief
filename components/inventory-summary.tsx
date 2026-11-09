@@ -5,7 +5,7 @@ export type InventorySummaryMetric = {
   id: string;
   label: string;
   /** Numbers use en-US formatting; strings support currency and signed values. */
-  value: number | string;
+  value: number | string | null;
   emphasized?: boolean;
 };
 
@@ -93,7 +93,11 @@ export default function InventorySummary({
                   emphasized && "font-bold",
                 )}
               >
-                {typeof value === "number" ? value.toLocaleString("en-US") : value}
+                {value === null
+                  ? "-"
+                  : typeof value === "number"
+                    ? value.toLocaleString("en-US")
+                    : value}
               </dd>
             </div>
           ))}
