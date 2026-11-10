@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
 import { DashboardApiError, fetchDashboard } from "@/client/api/inventory";
@@ -20,16 +21,30 @@ export default function Home() {
     String(new Date().getFullYear())
   );
   const [selectedLocation, setSelectedLocation] = useState("LOWCOUNTRY");
-
+  const router = useRouter();
   const { data, isPending, isError, error } = useQuery({
     queryKey: qk.dashboard(selectedYear, selectedLocation),
     queryFn: () => fetchDashboard(selectedYear, selectedLocation),
     gcTime: 0, // don't keep old results, so every change shows loading
-    // Don't retry 422 errors; retrying can't fix them.
+    // Retrying can't fix these, so fail fast
     retry: (failureCount, err) =>
-      !(err instanceof DashboardApiError && err.status === 422) &&
-      failureCount < 3,
+      !(
+        err instanceof DashboardApiError &&
+        [401, 403, 422].includes(err.status)
+      ) && failureCount < 3,
   });
+
+    // A signed-out (or no-longer-allowed) user gets sent back to sign in
+  const unauthorizedStatus =
+    error instanceof DashboardApiError &&
+    (error.status === 401 || error.status === 403)
+      ? error.status
+      : null;
+
+  useEffect(() => {
+    if (unauthorizedStatus === 401) router.replace("/sign-in");
+    if (unauthorizedStatus === 403) router.replace("/sign-in?error=not_allowed");
+  }, [unauthorizedStatus, router]);
 
   const summary = data?.summary;
   const rows = data?.rows ?? [];
@@ -87,6 +102,10 @@ export default function Home() {
 
       {isPending ? (
         <p className="text-sm text-muted-foreground">Loading inventory...</p>
+      ) : unauthorizedStatus ? (
+        <p className="text-sm text-muted-foreground">
+          Redirecting to sign in...
+        </p>
       ) : isError ? (
         <p role="alert" className="text-sm text-destructive">
           Could not load inventory: {error.message}
