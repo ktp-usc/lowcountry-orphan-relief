@@ -191,12 +191,6 @@ function sortFormsByName(forms) {
   return [...forms].sort((a, b) => a.title.localeCompare(b.title));
 }
 
-function normalizeNumericIdList(values = []) {
-  return values
-    .map((value) => Number(value))
-    .filter((value) => Number.isFinite(value) && value > 0);
-}
-
 function getTargetForms(forms) {
   const filtered = forms.filter((form) => !shouldSkipForm(form));
   const configuredIds = new Set(
