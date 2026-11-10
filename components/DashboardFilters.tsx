@@ -18,6 +18,9 @@ const locations = [
   { value: "MIDLANDS", label: "Midlands" },
 ];
 
+const triggerClass =
+  "h-[35px] data-[size=default]:h-[35px] rounded-[7px] border-border bg-card px-[11px] text-[11px] text-foreground shadow-none";
+
 type DashboardFiltersProps = {
   selectedYear: string;
   selectedLocation: string;
@@ -32,19 +35,21 @@ export function DashboardFilters({
   onLocationChange,
 }: DashboardFiltersProps) {
   return (
-    <div className="flex flex-wrap items-end gap-4">
+    <div className="flex flex-wrap items-center gap-[11px]">
       {/* Year Filter */}
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium text-foreground">Year</label>
+      <div className="flex items-center gap-2">
+        <label className="whitespace-nowrap text-[10px] text-muted-foreground">
+          Year
+        </label>
 
         <Select value={selectedYear} onValueChange={onYearChange}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className={`w-[110px] ${triggerClass}`}>
             <SelectValue placeholder="Select year" />
           </SelectTrigger>
 
           <SelectContent>
             {years.map((year) => (
-              <SelectItem key={year} value={year}>
+              <SelectItem key={year} value={year} className="text-[11px]">
                 {year}
               </SelectItem>
             ))}
@@ -53,17 +58,23 @@ export function DashboardFilters({
       </div>
 
       {/* Location Filter */}
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium text-foreground">Location</label>
+      <div className="flex items-center gap-2">
+        <label className="whitespace-nowrap text-[10px] text-muted-foreground">
+          Location
+        </label>
 
         <Select value={selectedLocation} onValueChange={onLocationChange}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className={`w-[150px] ${triggerClass}`}>
             <SelectValue placeholder="Select location" />
           </SelectTrigger>
 
           <SelectContent>
             {locations.map((location) => (
-              <SelectItem key={location.value} value={location.value}>
+              <SelectItem
+                key={location.value}
+                value={location.value}
+                className="text-[11px]"
+              >
                 {location.label}
               </SelectItem>
             ))}

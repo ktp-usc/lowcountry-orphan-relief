@@ -68,15 +68,15 @@ export default function Home() {
   }));
 
   return (
-    <main className="min-h-screen bg-background px-6 py-8 md:px-10">
-      <header className="mb-8 flex items-start justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-foreground">
-          Lowcountry Orphan Relief Inventory
+    <main className="mx-auto min-h-screen max-w-[1380px] px-4 pb-10 pt-7 sm:px-9">
+      <header className="mb-6 flex items-start justify-between gap-4">
+        <h1 className="font-heading text-[23px] font-bold tracking-[-0.45px] text-foreground">
+          Lowcountry & Midlands Orphan Relief Inventory
         </h1>
         <SignOutButton />
       </header>
 
-      <section className="mb-6">
+      <section className="mb-[14px]">
         <DashboardFilters
           selectedYear={selectedYear}
           selectedLocation={selectedLocation}
@@ -86,9 +86,9 @@ export default function Home() {
       </section>
 
       {isPending ? (
-        <p className="text-sm text-muted-foreground">Loading inventory...</p>
+        <p className="text-[11px] text-muted-foreground">Loading inventory...</p>
       ) : isError ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-[11px] text-destructive">
           Could not load inventory: {error.message}
         </p>
       ) : (
@@ -96,14 +96,14 @@ export default function Home() {
           {hasMissingValuations && (
             <p
               role="status"
-              className="mb-6 rounded-md border border-border bg-muted px-4 py-3 text-sm text-foreground"
+              className="mb-[14px] rounded-lg border border-border bg-accent px-[13px] py-[10px] text-[10px] leading-relaxed text-foreground"
             >
               Some items are missing a {selectedYear} valuation, so their
               values show as "-" and the total value cannot be calculated.
             </p>
           )}
 
-          <section className="mb-6">
+          <section className="mb-[14px]">
             <InventorySummary
               title="Annual Inventory Summary"
               year={Number(selectedYear)}
@@ -112,9 +112,7 @@ export default function Home() {
           </section>
 
           <section className="w-full">
-            <h2 className="mb-4 text-lg font-semibold text-foreground">
-              Inventory
-            </h2>
+            <h2 className="sr-only">Inventory</h2>
             <InventoryTable rows={tableRows} />
           </section>
         </>
