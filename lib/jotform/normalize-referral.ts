@@ -21,6 +21,7 @@ type ReferralFormMapping = {
   schoolFieldId: string;
   uniformTopsFieldId: string;
   uniformBottomsFieldId: string;
+  referralTypeFieldId?: string;
 };
 
 // Exact IDs from the supplied field-only exports. Keep independent mappings:
@@ -55,13 +56,15 @@ const referralForms: Readonly<Record<string, ReferralFormMapping>> = {
     socksFieldId: "147", wipesFieldId: "81", toiletriesFieldId: "85",
     diapersFieldId: "159", schoolFieldId: "83",
     uniformTopsFieldId: "169", uniformBottomsFieldId: "171",
+    referralTypeFieldId: "178",
   },
 };
 
 const defaultQuantities = {
-  TOPS: 1, BOTTOMS: 1, JACKETS_HOODIES: 1, DRESSES: 1, PAJAMAS: 1,
-  UNDERWEAR: 1, SHOES: 1, SOCKS: 1, WIPES: 1, TOILETRIES: 1,
-  DIAPERS: 1, PULL_UPS: 1, SCHOOL: 1, UNIFORM_TOPS: 1, UNIFORM_BOTTOMS: 1,
+  TOPS: 5, BOTTOMS: 4, JACKETS_HOODIES: 1, DRESSES: 2, PAJAMAS: 1,
+  UNDERWEAR: 5, SHOES: 1, SOCKS: 5, WIPES: 1, TOILETRIES: 1,
+  DIAPERS: 1, PULL_UPS: 1, SCHOOL: 1, UNIFORM_TOPS: 2, UNIFORM_BOTTOMS: 2,
+  BOOKS: 2, STUFFED_ANIMALS: 2,
 };
 
 export type ReferralSupply = keyof typeof defaultQuantities;
@@ -95,6 +98,17 @@ function answer(answers: Record<string, unknown>, fieldId: string): string {
   const field = answers[fieldId];
   return isRecord(field) && typeof field.answer === "string"
     ? field.answer.trim().toLowerCase() : "";
+}
+
+function answerText(answers: Record<string, unknown>, fieldId: string): string {
+  const field = answers[fieldId];
+  if (!isRecord(field)) return "";
+  const value = field.answer;
+  if (typeof value === "string") return value.trim().toLowerCase();
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry).trim().toLowerCase()).join(" ");
+  }
+  return "";
 }
 
 const newYorkClock = new Intl.DateTimeFormat("en-US", {
@@ -151,6 +165,10 @@ function toiletryCode(age: string): string {
   throw new Error("A valid age selection is required for the requested toiletry kit.");
 }
 
+function isNineMonthsOrYounger(age: string): boolean {
+  return age === "0-3 months" || age === "3-6 months" || age === "6-9 months";
+}
+
 /**
  * Transform one KAN-14 API submission into KAN-16's persistence contract.
  * No API calls, database access, logging, input mutation or personal fields in
@@ -184,11 +202,12 @@ export function normalizeReferralSubmission(
   const answers = rawSubmission.answers ?? {};
   const selected = (id: string) => answer(answers, id) === "yes";
   const byCode = new Map<string, number>();
-  const add = (itemCode: string, supply: ReferralSupply) => {
-    const quantity = (byCode.get(itemCode) ?? 0) + quantities[supply];
+  const addUnits = (itemCode: string, units: number) => {
+    const quantity = (byCode.get(itemCode) ?? 0) + units;
     if (quantity > 2_147_483_647) throw new Error("Combined referral quantity exceeds the PostgreSQL integer limit.");
     byCode.set(itemCode, quantity);
   };
+  const add = (itemCode: string, supply: ReferralSupply) => addUnits(itemCode, quantities[supply]);
 
   for (const clothing of form.clothing) {
     if (!selected(clothing.fieldId)) continue;
@@ -205,7 +224,12 @@ export function normalizeReferralSubmission(
     if (type !== "adult" && type !== "child/baby") {
       throw new Error(`An adult or child/baby selection is required for requested supply field ${clothing.fieldId}.`);
     }
-    add(`${type === "adult" ? adultPrefix : "CHILDRENS"}_${clothing.category}`, clothing.category);
+    const itemCode = `${type === "adult" ? adultPrefix : "CHILDRENS"}_${clothing.category}`;
+    add(itemCode, clothing.category);
+    if (clothing.category === "PAJAMAS" && type === "child/baby" && isNineMonthsOrYounger(answer(answers, form.ageFieldId))) {
+      // Client rule: selected child/baby pajamas include 3 additional sleepers for 9 months and younger.
+      addUnits(itemCode, 3);
+    }
   }
 
   // These referral questions have no adult/child selector. Use the children's
@@ -222,6 +246,15 @@ export function normalizeReferralSubmission(
   const school = answer(answers, form.schoolFieldId);
   if (school === "elementary school bookbag & supplies") add("ELEMENTARY_SCHOOL_BOOKBAG_SUPPLIES", "SCHOOL");
   if (school === "middle/high school bookbag & supplies") add("MIDDLE_HIGH_SCHOOL_BOOKBAG_SUPPLIES", "SCHOOL");
+
+  // Midlands Referral Type (field 178) is a structured selector for additional supplies.
+  if (form.referralTypeFieldId) {
+    const referralType = answerText(answers, form.referralTypeFieldId);
+    if (/\bbooks?\b/.test(referralType)) add("BOOKS", "BOOKS");
+    if (/\bstuffed(?:\s+animals?)?\b/.test(referralType) || /\btoys?\b/.test(referralType)) {
+      add("STUFFED_ANIMALS", "STUFFED_ANIMALS");
+    }
+  }
 
   return {
     submission: {

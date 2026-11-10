@@ -7,6 +7,25 @@ import { loadReferral } from "../scripts/lib/load-referral.mjs";
 const { normalizeReferralSubmission: normalize } = await loadReferral();
 const lor = "261498369429070";
 const mor = "261526295444158";
+const baseQuantities = {
+  TOPS: 5,
+  BOTTOMS: 4,
+  JACKETS_HOODIES: 1,
+  DRESSES: 2,
+  PAJAMAS: 1,
+  UNDERWEAR: 5,
+  SHOES: 1,
+  SOCKS: 5,
+  WIPES: 1,
+  TOILETRIES: 1,
+  DIAPERS: 1,
+  PULL_UPS: 1,
+  SCHOOL: 1,
+  UNIFORM_TOPS: 2,
+  UNIFORM_BOTTOMS: 2,
+  BOOKS: 2,
+  STUFFED_ANIMALS: 2,
+};
 const fixture = (name) => JSON.parse(readFileSync(new URL(`../lib/jotform/sample-data/${name}-referral-submission.json`, import.meta.url), "utf8"));
 const raw = (values = {}, formId = lor, extra = {}) => ({
   id: "900000000000000003", form_id: formId, created_at: "2026-07-01 12:00:00",
@@ -14,7 +33,23 @@ const raw = (values = {}, formId = lor, extra = {}) => ({
   ...extra,
 });
 const activities = (data, options) => normalize(data.form_id, data, options).inventoryActivities;
-const activity = (itemCode, quantity = 1) => ({ itemCode, quantity, direction: "OUT" });
+const quantityForItemCode = (itemCode) => {
+  if (itemCode === "BOOKS") return baseQuantities.BOOKS;
+  if (itemCode === "STUFFED_ANIMALS") return baseQuantities.STUFFED_ANIMALS;
+  if (itemCode === "WIPES") return baseQuantities.WIPES;
+  if (itemCode === "DIAPERS") return baseQuantities.DIAPERS;
+  if (itemCode === "PULL_UPS") return baseQuantities.PULL_UPS;
+  if (itemCode.startsWith("TOILETRY_KIT_")) return baseQuantities.TOILETRIES;
+  if (itemCode.endsWith("_SCHOOL_BOOKBAG_SUPPLIES")) return baseQuantities.SCHOOL;
+  if (itemCode === "CHILDRENS_SOCKS") return baseQuantities.SOCKS;
+
+  const clothing = /^(?:MENS|WOMENS|CHILDRENS)_(TOPS|BOTTOMS|JACKETS_HOODIES|DRESSES|PAJAMAS|UNDERWEAR|SHOES)$/.exec(itemCode);
+  if (!clothing) return 1;
+
+  const [, category] = clothing;
+  return baseQuantities[category];
+};
+const activity = (itemCode, quantity = quantityForItemCode(itemCode)) => ({ itemCode, quantity, direction: "OUT" });
 const sorted = (rows) => rows.toSorted((a, b) => a.itemCode.localeCompare(b.itemCode));
 
 test("LOR made-up API sample preserves the KAN-16 contract and combines top requests", () => {
@@ -25,7 +60,7 @@ test("LOR made-up API sample preserves the KAN-16 contract and combines top requ
     location: "LOWCOUNTRY", sourceType: "REFERRAL", submissionDate: new Date("2026-07-15T14:30:00Z"),
   });
   assert.deepEqual(sorted(result.inventoryActivities), sorted([
-    activity("CHILDRENS_TOPS", 2), activity("MENS_BOTTOMS"), activity("CHILDRENS_SOCKS"),
+    activity("CHILDRENS_TOPS", 7), activity("MENS_BOTTOMS"), activity("CHILDRENS_SOCKS"),
     activity("WIPES"), activity("TOILETRY_KIT_6_11_YRS"), activity("ELEMENTARY_SCHOOL_BOOKBAG_SUPPLIES"),
   ]));
 });
@@ -35,7 +70,7 @@ test("MOR made-up API sample uses Midlands, winter time and its own supply mappi
   assert.equal(result.submission.location, "MIDLANDS");
   assert.equal(result.submission.submissionDate.toISOString(), "2026-01-15T15:30:00.000Z");
   assert.deepEqual(sorted(result.inventoryActivities), sorted([
-    activity("WOMENS_TOPS"), activity("CHILDRENS_DRESSES"), activity("CHILDRENS_BOTTOMS"),
+    activity("WOMENS_TOPS"), activity("CHILDRENS_DRESSES"), activity("CHILDRENS_BOTTOMS", 2),
     activity("PULL_UPS"), activity("TOILETRY_KIT_12_18_YRS"), activity("MIDDLE_HIGH_SCHOOL_BOOKBAG_SUPPLIES"),
   ]));
 });
@@ -114,6 +149,39 @@ test("quantity overrides are per request and merged categories are summed", () =
   assert.throws(() => activities(raw(), { quantities: [] }), /configuration/);
   assert.throws(() => activities(raw(), null), /configuration/);
   assert.throws(() => activities(fixture("lor"), { quantities: { TOPS: 2_147_483_647 } }), /integer limit/);
+});
+
+test("child/baby pajamas add three extra sleepers for ages 9 months and younger", () => {
+  assert.deepEqual(
+    activities(raw({ "17": "Female", "126": "Yes", "128": "Child/Baby", "158": "6-9 Months" })),
+    [activity("CHILDRENS_PAJAMAS", 4)],
+  );
+  assert.deepEqual(
+    activities(raw({ "17": "Female", "126": "Yes", "128": "Child/Baby", "158": "1 year" })),
+    [activity("CHILDRENS_PAJAMAS", 1)],
+  );
+  assert.deepEqual(
+    activities(raw({ "17": "Male", "126": "Yes", "127": "Adult", "158": "6-9 Months" })),
+    [activity("MENS_PAJAMAS", 1)],
+  );
+});
+
+test("Midlands referral type maps books and stuffed animals to structured IRS categories", () => {
+  assert.deepEqual(activities(raw({ "178": "Books" }, mor)), [activity("BOOKS")]);
+  assert.deepEqual(activities(raw({ "178": "Stuffed Animals" }, mor)), [activity("STUFFED_ANIMALS")]);
+  assert.deepEqual(
+    sorted(activities(raw({ "178": "Books and Stuffed Animals" }, mor))),
+    sorted([activity("BOOKS"), activity("STUFFED_ANIMALS")]),
+  );
+  assert.deepEqual(activities(raw({ "178": "None" }, mor)), []);
+  assert.deepEqual(
+    sorted(activities(raw({ "178": ["Books", "Toys"] }, mor))),
+    sorted([activity("BOOKS"), activity("STUFFED_ANIMALS")]),
+  );
+});
+
+test("Lowcountry uniform color fields do not map to books or stuffed animals", () => {
+  assert.deepEqual(activities(raw({ "177": ["Books", "Navy"], "178": ["Stuffed Animals"] }, lor)), []);
 });
 
 test("every producible item code exists in the real IRS seed catalogue", () => {
