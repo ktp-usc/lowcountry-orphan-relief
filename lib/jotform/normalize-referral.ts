@@ -1,4 +1,4 @@
-import type { JotformSubmission } from "./fetch-submissions";
+import type { JotformSubmission } from "./fetch-submissions.js";
 
 type Location = "LOWCOUNTRY" | "MIDLANDS";
 type ClothingCategory = "TOPS" | "BOTTOMS" | "JACKETS_HOODIES" | "DRESSES" | "PAJAMAS" | "UNDERWEAR" | "SHOES";
@@ -104,7 +104,7 @@ const newYorkClock = new Intl.DateTimeFormat("en-US", {
 });
 
 /** Parse API timestamps deterministically, including Eastern daylight saving time. */
-function submissionDate(value: unknown): Date {
+export function parseJotformSubmissionDate(value: unknown): Date {
   if (typeof value !== "string") throw new Error("A submission timestamp is required.");
   const match = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?(Z|[+-]\d{2}:\d{2})?$/.exec(value.trim());
   if (!match) throw new Error("Invalid submission timestamp.");
@@ -180,7 +180,7 @@ export function normalizeReferralSubmission(
       throw new Error("Configured referral quantities must be positive PostgreSQL integers for known supplies.");
     }
   }
-  const date = submissionDate(rawSubmission.created_at ?? rawSubmission.updated_at);
+  const date = parseJotformSubmissionDate(rawSubmission.created_at ?? rawSubmission.updated_at);
   const answers = rawSubmission.answers ?? {};
   const selected = (id: string) => answer(answers, id) === "yes";
   const byCode = new Map<string, number>();
