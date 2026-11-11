@@ -119,6 +119,36 @@ test("rejects invalid quantities such as text and fractions", async () => {
   );
 });
 
+test("maps negative quantities to OUT deductions for both quantity forms", async () => {
+  const low = normalizeInventorySubmission(LOWCOUNTRY_FORM_ID, {
+    id: "low-negative-1",
+    created_at: "2026-11-02 16:03:42",
+    answers: {
+      "52": { answer: "-2" },
+      "53": { answer: "-3" },
+    },
+  });
+
+  const mid = normalizeInventorySubmission(MIDLANDS_FORM_ID, {
+    id: "mid-negative-1",
+    created_at: "2026-11-02 16:03:42",
+    answers: {
+      "52": { answer: "-4" },
+      "53": { answer: "-1" },
+    },
+  });
+
+  assert.deepEqual(low.inventoryActivities, [
+    { itemCode: "STUFFED_ANIMALS", quantity: 2, direction: "OUT" },
+    { itemCode: "BOOKS", quantity: 3, direction: "OUT" },
+  ]);
+
+  assert.deepEqual(mid.inventoryActivities, [
+    { itemCode: "STUFFED_ANIMALS", quantity: 4, direction: "OUT" },
+    { itemCode: "BOOKS", quantity: 1, direction: "OUT" },
+  ]);
+});
+
 test("rejects missing or invalid submission id and timestamps", async () => {
   const fixture = await readFixture("mor-inventory-submission.json");
 

@@ -13,9 +13,9 @@ const baseQuantities = {
   JACKETS_HOODIES: 1,
   DRESSES: 2,
   PAJAMAS: 1,
-  UNDERWEAR: 5,
+  UNDERWEAR: 1,
   SHOES: 1,
-  SOCKS: 5,
+  SOCKS: 1,
   WIPES: 1,
   TOILETRIES: 1,
   DIAPERS: 1,
@@ -51,6 +51,7 @@ const quantityForItemCode = (itemCode) => {
 };
 const activity = (itemCode, quantity = quantityForItemCode(itemCode)) => ({ itemCode, quantity, direction: "OUT" });
 const sorted = (rows) => rows.toSorted((a, b) => a.itemCode.localeCompare(b.itemCode));
+const withBaseline = (rows = []) => sorted([...rows, activity("BOOKS"), activity("STUFFED_ANIMALS")]);
 
 test("LOR made-up API sample preserves the KAN-16 contract and combines top requests", () => {
   const result = normalize(lor, fixture("lor"));
@@ -62,6 +63,7 @@ test("LOR made-up API sample preserves the KAN-16 contract and combines top requ
   assert.deepEqual(sorted(result.inventoryActivities), sorted([
     activity("CHILDRENS_TOPS", 7), activity("MENS_BOTTOMS"), activity("CHILDRENS_SOCKS"),
     activity("WIPES"), activity("TOILETRY_KIT_6_11_YRS"), activity("ELEMENTARY_SCHOOL_BOOKBAG_SUPPLIES"),
+    activity("BOOKS"), activity("STUFFED_ANIMALS"),
   ]));
 });
 
@@ -72,6 +74,7 @@ test("MOR made-up API sample uses Midlands, winter time and its own supply mappi
   assert.deepEqual(sorted(result.inventoryActivities), sorted([
     activity("WOMENS_TOPS"), activity("CHILDRENS_DRESSES"), activity("CHILDRENS_BOTTOMS", 2),
     activity("PULL_UPS"), activity("TOILETRY_KIT_12_18_YRS"), activity("MIDDLE_HIGH_SCHOOL_BOOKBAG_SUPPLIES"),
+    activity("BOOKS"), activity("STUFFED_ANIMALS"),
   ]));
 });
 
@@ -88,19 +91,22 @@ for (const formId of [lor, mor]) {
           // Opposite/hidden branch and sizes deliberately conflict with the active branch.
           const oppositeId = sex === "Male" ? femaleId : maleId;
           const data = raw({ "17": sex, [fieldId]: "Yes", [typeId]: type, [oppositeId]: "Adult", "59": "XL" }, formId);
-          assert.deepEqual(activities(data), [activity(`${type === "Adult" ? prefix : "CHILDRENS"}_${category}`)]);
+          assert.deepEqual(
+            sorted(activities(data)),
+            withBaseline([activity(`${type === "Adult" ? prefix : "CHILDRENS"}_${category}`)]),
+          );
         });
       }
     }
   }
   for (const [type, prefix] of [["Adult", "WOMENS"], ["Child/Baby", "CHILDRENS"]]) {
     test(`${formId}: dresses ${type} uses its single type selector`, () => {
-      assert.deepEqual(activities(raw({ "117": "Yes", "119": type }, formId)), [activity(`${prefix}_DRESSES`)]);
+      assert.deepEqual(sorted(activities(raw({ "117": "Yes", "119": type }, formId))), withBaseline([activity(`${prefix}_DRESSES`)]));
     });
   }
   for (const [choice, code] of [["Diapers", "DIAPERS"], ["Pull Ups", "PULL_UPS"]]) {
     test(`${formId}: ${choice} counts one pack without inferring quantity from size`, () => {
-      assert.deepEqual(activities(raw({ "159": choice, "78": "Size 6", "80": "4T/5T" }, formId)), [activity(code)]);
+      assert.deepEqual(sorted(activities(raw({ "159": choice, "78": "Size 6", "80": "4T/5T" }, formId))), withBaseline([activity(code)]));
     });
   }
 }
@@ -112,7 +118,10 @@ for (const [age, code] of [
 ]) {
   test(`toiletry age band: ${age}`, () => {
     for (const formId of [lor, mor]) {
-      assert.deepEqual(activities(raw({ "85": "Yes", "158": age }, formId)), [activity(`TOILETRY_KIT_${code}_YRS`)]);
+      assert.deepEqual(
+        sorted(activities(raw({ "85": "Yes", "158": age }, formId))),
+        withBaseline([activity(`TOILETRY_KIT_${code}_YRS`)]),
+      );
     }
   });
 }
@@ -124,17 +133,24 @@ test("blank, no, none and unselected requests skip stale hidden selectors and si
     "159": "None", "78": "Size 1", "80": "4T/5T", "83": "None",
     "177": ["Navy", "White"], "183": ["Navy", "White"], "184": ["Khaki"],
   });
-  assert.deepEqual(activities(data), []);
-  assert.deepEqual(activities(raw()), []);
-  assert.deepEqual(activities(raw({}, mor, { answers: undefined })), []);
+  const baseline = withBaseline();
+  assert.deepEqual(sorted(activities(data)), baseline);
+  assert.deepEqual(sorted(activities(raw())), baseline);
+  assert.deepEqual(sorted(activities(raw({}, mor, { answers: undefined }))), baseline);
   for (const value of [undefined, null, "", "No", "Maybe", 1, -1, true, false, ["Yes"], { value: "Yes" }]) {
-    assert.deepEqual(activities(raw({ "81": value })), []);
+    assert.deepEqual(sorted(activities(raw({ "81": value }))), baseline);
   }
 });
 
 test("normalizes case and whitespace only for recognized choices", () => {
-  assert.deepEqual(activities(raw({ "81": " YES ", "159": " pull UPS " })), [activity("WIPES"), activity("PULL_UPS")]);
-  assert.deepEqual(activities(raw({ "159": "Both", "83": "Unknown school" })), []);
+  assert.deepEqual(
+    sorted(activities(raw({ "81": " YES ", "159": " pull UPS " }))),
+      withBaseline([activity("WIPES"), activity("PULL_UPS")]),
+  );
+  assert.deepEqual(
+    sorted(activities(raw({ "159": "Both", "83": "Unknown school" }))),
+      withBaseline(),
+  );
 });
 
 test("quantity overrides are per request and merged categories are summed", () => {
@@ -153,35 +169,26 @@ test("quantity overrides are per request and merged categories are summed", () =
 
 test("child/baby pajamas add three extra sleepers for ages 9 months and younger", () => {
   assert.deepEqual(
-    activities(raw({ "17": "Female", "126": "Yes", "128": "Child/Baby", "158": "6-9 Months" })),
-    [activity("CHILDRENS_PAJAMAS", 4)],
+    sorted(activities(raw({ "17": "Female", "126": "Yes", "128": "Child/Baby", "158": "6-9 Months" }))),
+    withBaseline([activity("CHILDRENS_PAJAMAS", 4)]),
   );
   assert.deepEqual(
-    activities(raw({ "17": "Female", "126": "Yes", "128": "Child/Baby", "158": "1 year" })),
-    [activity("CHILDRENS_PAJAMAS", 1)],
+    sorted(activities(raw({ "17": "Female", "126": "Yes", "128": "Child/Baby", "158": "1 year" }))),
+    withBaseline([activity("CHILDRENS_PAJAMAS", 1)]),
   );
   assert.deepEqual(
-    activities(raw({ "17": "Male", "126": "Yes", "127": "Adult", "158": "6-9 Months" })),
-    [activity("MENS_PAJAMAS", 1)],
+    sorted(activities(raw({ "17": "Male", "126": "Yes", "127": "Adult", "158": "6-9 Months" }))),
+    withBaseline([activity("MENS_PAJAMAS", 1)]),
   );
 });
 
-test("Midlands referral type maps books and stuffed animals to structured IRS categories", () => {
-  assert.deepEqual(activities(raw({ "178": "Books" }, mor)), [activity("BOOKS")]);
-  assert.deepEqual(activities(raw({ "178": "Stuffed Animals" }, mor)), [activity("STUFFED_ANIMALS")]);
-  assert.deepEqual(
-    sorted(activities(raw({ "178": "Books and Stuffed Animals" }, mor))),
-    sorted([activity("BOOKS"), activity("STUFFED_ANIMALS")]),
-  );
-  assert.deepEqual(activities(raw({ "178": "None" }, mor)), []);
-  assert.deepEqual(
-    sorted(activities(raw({ "178": ["Books", "Toys"] }, mor))),
-    sorted([activity("BOOKS"), activity("STUFFED_ANIMALS")]),
-  );
-});
-
-test("Lowcountry uniform color fields do not map to books or stuffed animals", () => {
-  assert.deepEqual(activities(raw({ "177": ["Books", "Navy"], "178": ["Stuffed Animals"] }, lor)), []);
+test("every referral submission includes two books and two stuffed animals", () => {
+  for (const formId of [lor, mor]) {
+    assert.deepEqual(
+      sorted(activities(raw({}, formId))),
+      withBaseline(),
+    );
+  }
 });
 
 test("every producible item code exists in the real IRS seed catalogue", () => {
@@ -208,7 +215,7 @@ test("every producible item code exists in the real IRS seed catalogue", () => {
       }
     }
   }
-  assert.equal(emitted.size, 29);
+  assert.equal(emitted.size, 31);
 });
 
 test("selected requests without classification reject without revealing answers", () => {
@@ -229,12 +236,15 @@ test("only allowlisted answer payloads are read, and personal information never 
     }
     data.answers["9999"] = { text: "Wipes", name: "wipes", answer: "Yes" };
     const result = normalize(formId, data);
-    assert.deepEqual(activities(data), [activity("WIPES")]);
+    assert.deepEqual(sorted(activities(data)), withBaseline([activity("WIPES")]));
     assert.equal(JSON.stringify(result).includes("PRIVATE"), false);
     assert.deepEqual(Object.keys(result.submission).sort(), ["jotformFormId", "jotformSubmissionId", "location", "sourceType", "submissionDate"]);
     assert.deepEqual(Object.keys(result.inventoryActivities[0]).sort(), ["direction", "itemCode", "quantity"]);
   }
-  assert.deepEqual(activities(raw({}, lor, { answers: { "81": { text: "Yes", name: "Yes" } } })), []);
+  assert.deepEqual(
+    sorted(activities(raw({}, lor, { answers: { "81": { text: "Yes", name: "Yes" } } }))),
+    withBaseline(),
+  );
 });
 
 function deepFreeze(value) {

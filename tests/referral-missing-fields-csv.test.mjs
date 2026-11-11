@@ -19,7 +19,7 @@ const MAPPED_FIELD_IDS = new Set([
   "126", "127", "128",
   "133", "134", "135",
   "140", "141", "142",
-  "147", "81", "85", "159", "83", "169", "171", "178",
+  "147", "81", "85", "159", "83", "169", "171",
 ]);
 
 const KEYWORD_REGEX = /(book|books|stuffed|animal|toy|school|supply|supplies|uniform)/i;
