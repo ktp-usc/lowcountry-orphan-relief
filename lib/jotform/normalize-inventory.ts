@@ -271,7 +271,7 @@ export function normalizeInventorySubmission(
 
     inventoryActivities.push({
       itemCode: normalizedItemCode,
-      quantity: Math.abs(Math.trunc(quantity)),
+      quantity: Math.abs(quantity),
       direction: quantity < 0 ? InventoryDirection.OUT : InventoryDirection.IN,
     });
   }

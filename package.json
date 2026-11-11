@@ -12,6 +12,9 @@
     "test:jotform": "node scripts/test-jotform.mjs",
     "test:jotform:unit": "node --test tests/jotform-fetch.test.mjs",
     "test:referral": "node --test tests/normalize-referral.test.mjs",
+    "import:jotform": "node scripts/run-jotform-import.mjs import",
+    "test:jotform:import": "node --test tests/import-submissions.test.mjs",
+    "check:jotform:import": "node scripts/run-jotform-import.mjs check",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate dev",
@@ -27,12 +30,14 @@
     "check:inventory": "node scripts/check-inventory.mjs",
     "test:normalize:inventory": "node --test tests/normalize-inventory.test.mjs",
     "test:save:submission": "node --test tests/save-submission.test.mjs",
-    "test:save:submission:integration": "node --test tests/save-submission.integration.test.mjs"
+    "test:save:submission:integration": "node --test tests/save-submission.integration.test.mjs",
+    "import:starting-inventory": "node --conditions=react-server --import tsx scripts/import-starting-inventory.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "@tanstack/react-query": "^5.90.21",
+    "better-auth": "^1.7.18",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cn": "^0.5.0",
@@ -56,6 +61,7 @@
     "prisma": "7.10.1",
     "shadcn": "^3.8.5",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "tw-animate-css": "^1.4.0",
     "typescript": "^5.4.0"
   },

@@ -40,19 +40,22 @@ const headings = [
   "Current value",
 ];
 
+const numberCell =
+  "h-10 px-3 py-0 text-right text-sm font-normal tabular-nums text-foreground";
+
 export default function InventoryTable({ rows }: InventoryTableProps) {
   return (
-    <section className="overflow-hidden rounded border border-border bg-card">
-      <Table className="min-w-[1050px] border-collapse font-sans text-sm text-foreground">
-        <TableHeader className="bg-muted-foreground/10">
-          <TableRow className="border-b border-muted-foreground/40 hover:bg-transparent">
+    <section className="overflow-hidden rounded-[9px] border border-border bg-card">
+      <Table className="min-w-[900px] border-collapse font-sans text-sm text-foreground">
+        <TableHeader className="bg-table-header">
+          <TableRow className="border-b border-line-soft hover:bg-transparent">
             {headings.map((heading, index) => (
               <TableHead
                 key={heading}
                 scope="col"
-                className={`px-3 py-2.5 text-sm font-semibold tracking-normal text-foreground ${
-                  index === 0 ? "min-w-[280px] text-left" : "text-right"
-                } ${index === 5 ? "border-l border-muted-foreground/20" : ""}`}
+                className={`h-9 px-3 text-xs font-bold uppercase tracking-[0.35px] text-muted-foreground ${
+                  index === 0 ? "min-w-[250px] text-left" : "text-right"
+                }`}
               >
                 {heading}
               </TableHead>
@@ -67,7 +70,9 @@ export default function InventoryTable({ rows }: InventoryTableProps) {
                 colSpan={headings.length}
                 className="h-40 px-3 py-2.5 text-center"
               >
-                <p className="font-semibold">No inventory data available.</p>
+                <p className="text-[11px] font-semibold text-foreground">
+                  No inventory data available.
+                </p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Inventory items will appear here when data is provided.
                 </p>
@@ -77,35 +82,35 @@ export default function InventoryTable({ rows }: InventoryTableProps) {
             rows.map((row) => (
               <TableRow
                 key={row.item}
-                className="even:bg-muted-foreground/5 hover:bg-transparent"
+                className="border-b border-line-soft even:bg-stripe hover:bg-transparent"
               >
-                <TableCell className="whitespace-normal px-3 py-2.5 font-normal">
+                <TableCell className="h-10 min-w-[250px] whitespace-normal px-3 py-0 text-sm font-medium text-foreground">
                   {row.item}
                 </TableCell>
 
-                <TableCell className="px-3 py-2.5 text-right font-normal tabular-nums">
+                <TableCell className={numberCell}>
                   {quantity.format(row.initialCount)}
                 </TableCell>
 
-                <TableCell className="px-3 py-2.5 text-right font-normal tabular-nums">
+                <TableCell className={numberCell}>
                   {formatValue(row.initialValue)}
                 </TableCell>
 
-                <TableCell className="px-3 py-2.5 text-right font-normal tabular-nums">
+                <TableCell className={numberCell}>
                   {row.itemsSubtracted > 0 ? "−" : ""}
                   {quantity.format(row.itemsSubtracted)}
                 </TableCell>
 
-                <TableCell className="px-3 py-2.5 text-right font-normal tabular-nums">
+                <TableCell className={numberCell}>
                   {row.itemsAdded > 0 ? "+" : ""}
                   {quantity.format(row.itemsAdded)}
                 </TableCell>
 
-                <TableCell className="border-l border-muted-foreground/20 px-3 py-2.5 text-right font-medium tabular-nums">
+                <TableCell className={numberCell}>
                   {quantity.format(row.currentCount)}
                 </TableCell>
 
-                <TableCell className="px-3 py-2.5 text-right font-medium tabular-nums">
+                <TableCell className={numberCell}>
                   {formatValue(row.currentValue)}
                 </TableCell>
               </TableRow>

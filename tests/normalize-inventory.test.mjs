@@ -95,6 +95,22 @@ test("treats missing answer values as blanks", async () => {
   assert.deepEqual(result.inventoryActivities, []);
 });
 
+test("maps positive inventory quantities to IN and negative quantities to OUT", async () => {
+  const fixture = await readFixture("mor-inventory-submission.json");
+  const result = normalizeInventorySubmission(MIDLANDS_FORM_ID, {
+    ...fixture,
+    id: "positive-and-negative-inventory",
+    answers: { "8": { answer: "5" }, "49": { answer: "-3" }, "51": { answer: "-1" } },
+  });
+
+  assert.equal(result.submission.sourceType, "INVENTORY");
+  assert.deepEqual(result.inventoryActivities, [
+    { itemCode: "MENS_TOPS", quantity: 5, direction: "IN" },
+    { itemCode: "DIAPERS", quantity: 3, direction: "OUT" },
+    { itemCode: "WIPES", quantity: 1, direction: "OUT" },
+  ]);
+});
+
 test("rejects invalid quantities such as text and fractions", async () => {
   const fixture = await readFixture("mor-inventory-submission.json");
 

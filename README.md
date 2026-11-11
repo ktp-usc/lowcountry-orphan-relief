@@ -166,6 +166,57 @@ responses and need no Jotform key. Scripts use native TypeScript loading when
 available and the existing TypeScript dev dependency on Node 20, so no new
 dependency or lockfile update is required. API reference: [Jotform API](https://api.jotform.com/docs/).
 
+## Import Jotform submissions
+
+`lib/jotform/forms.ts` configures the four approved forms, locations and source
+kinds. `importSubmissions(client, { limitPerForm })` fetches each form, uses its
+normalizer and calls KAN-18's `saveSubmission`. Set `JOTFORM_API_KEY` and
+`DATABASE_URL` (or `DIRECT_URL`) in `.env.local`/`.env`; existing process variables
+win. Run migrations and seed the item catalogue before importing.
+
+```bash
+npm run import:jotform -- --limit 2
+npm run import:jotform -- --all
+npm run test:jotform:import
+npm run check:jotform:import -- --limit 2
+```
+
+`--limit 2` fetches and attempts at most two records **per form**, including
+malformed records (eight total), bounding the API requests themselves. Repeat it to skip existing
+source IDs. Full imports require explicit `--all`. No database reset, migration
+or seeding happens automatically. Timezone-less timestamps use `America/New_York`.
+
+The command prints JSON totals `saved`, `skipped`, `failed` and separate lists
+`formErrors: [{ formId, message }]` and
+`submissionErrors: [{ formId, submissionId, message }]`. A failed fetch cannot
+count unknown submissions in `failed`; it appears only in `formErrors`. All
+later submissions/forms are attempted. Any failure gives exit status 1 after
+processing finishes. Answers, credentials and raw database errors are not printed.
+
+The importer opts into the fetcher's `onInvalidSubmission` reporting mode. A
+malformed API record becomes a submission error and does not stop other records
+from that form or later pages. Errors without a usable string ID use `unknown`
+and identify the API record position in the message. Ordinary fetch calls stay
+strict by default; HTTP, response-envelope and pagination failures are form
+errors. The live check replays fetch-validation failures along with its captured
+records, so repeated runs retain identical failure totals.
+
+`test:jotform:import` runs offline fictional cases, including seeded randomized
+batches. The live checker accepts limits of 1–5 per form, imports the exact same
+real sample twice and compares persisted metadata and activities. Real sample
+imports remain in the database. Its separate fictional invalid-then-valid tests
+run in a transaction and leave no test rows. The live check is successful only
+when its final `PASS` line appears.
+
+The live checker verifies import behavior and can report
+`passed-with-source-data-issues` for confirmed negative/fractional counts or
+missing clothing selections. It still verifies accepted rows, rejected-row
+absence and unchanged repeat imports, and requires successful inventory and
+referral saves. Those rejected records remain failed and need source review;
+the regular import command continues to exit with status 1 when any records fail.
+Unexpected failures, missing catalogue items and incorrect database results fail
+the live check.
+
 ## Inventory database
 
 The inventory ledger uses Prisma ORM 7.10.1 and PostgreSQL on Neon. Use Node
@@ -208,6 +259,14 @@ the Prisma client before Next.js compilation.
 Locations are `LOWCOUNTRY` and `MIDLANDS`; source types are `INVENTORY` and
 `REFERRAL`. Both locations share these tables. Activity location and timestamp
 come from the related source submission rather than being duplicated.
+
+Import opening counts from a JSON array with
+`npm run import:starting-inventory -- path/to/starting-inventory.json`.
+The expected record shape is shown in
+[`examples/starting-inventory.example.json`](examples/starting-inventory.example.json).
+The importer requires a configured `DATABASE_URL`, validates every item code
+and location before writing, and skips records already present for that item,
+year and location.
 
 Jotform IDs are strings to avoid JavaScript integer precision loss. Each
 activity references its source through **both** `jotformFormId` and

@@ -1,0 +1,14 @@
+[
+  {
+    "itemCode": "MENS_TOPS",
+    "year": 2026,
+    "location": "LOWCOUNTRY",
+    "startingQuantity": 100
+  },
+  {
+    "itemCode": "CHILDRENS_TOPS",
+    "year": 2026,
+    "location": "LOWCOUNTRY",
+    "startingQuantity": 80
+  }
+]
