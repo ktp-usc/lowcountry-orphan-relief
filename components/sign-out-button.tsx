@@ -1,23 +1,33 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 
 export function SignOutButton() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   return (
-    <button
+    <Button
       type="button"
-      className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground"
+      variant="outline"
+      className="hover:bg-accent hover:text-accent-foreground"
       onClick={() =>
         authClient.signOut({
-          fetchOptions: { onSuccess: () => router.push("/signed-out") },
+          fetchOptions: {
+            onSuccess: () => {
+              // Remove all cached data once sign out has succeeded
+              queryClient.clear();
+              router.push("/signed-out");
+            },
+          },
         })
       }
     >
       Sign out
-    </button>
+    </Button>
   );
 }
