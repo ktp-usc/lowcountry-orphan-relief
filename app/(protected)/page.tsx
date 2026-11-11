@@ -10,6 +10,7 @@ import { DashboardFilters } from "@/components/DashboardFilters";
 import InventorySummary from "@/components/inventory-summary";
 import InventoryTable from "@/components/inventory-table";
 import { SignOutButton } from "@/components/sign-out-button";
+import { JotformLinksMenu } from "@/components/jotform-links-menu";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -88,7 +89,10 @@ export default function Home() {
         <h1 className="font-heading text-[23px] font-bold tracking-[-0.45px] text-foreground">
           Lowcountry & Midlands Orphan Relief Inventory
         </h1>
-        <SignOutButton />
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <JotformLinksMenu />
+              <SignOutButton />
+          </div>
       </header>
 
       <section className="mb-[14px]">
