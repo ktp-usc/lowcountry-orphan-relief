@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 
 import { authClient } from "@/lib/auth-client";
+import { Button } from "@/components/ui/button";
 
 const startGoogleSignIn = () =>
   authClient.signIn.social({
@@ -41,16 +42,16 @@ export function SignInRedirect({ error }: { error?: string }) {
         That Google account is not allowed to use this app, or sign in failed.
         Try again with a different account.
       </p>
-      <button
+      <Button
         type="button"
-        className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground"
+        variant="outline"
         onClick={async () => {
           await authClient.signOut();
           await startGoogleSignIn();
         }}
       >
         Sign in with Google
-      </button>
+      </Button>
     </main>
   );
 }
