@@ -49,16 +49,14 @@ test("all four forms use real normalizers and the KAN-18 saver; second import is
   assert.deepEqual(client.snapshot(), state);
 });
 
-test("an invalid submission followed by a valid submission fails only the invalid one", async () => {
+test("negative inventory quantities import as OUT activities while positive quantities import as IN", async () => {
   const form = forms[0], client = createImportDatabase(items);
   const data = new Map([[form.id, [raw(form, "1001", "-2"), raw(form, "1002", "7")]]]);
   const summary = await importSubmissions(client, {}, { fetchSubmissions: fetchFrom(data) });
-  assert.equal(summary.saved, 1); assert.equal(summary.failed, 1); assert.equal(summary.skipped, 0);
-  assert.deepEqual(summary.formErrors, []);
-  assert.deepEqual(summary.submissionErrors, [{ formId: form.id, submissionId: "1001",
-    message: "Normalization failed: invalid quantity in field 51; expected a positive whole number or zero to omit." }]);
-  assert.deepEqual(client.snapshot().sources.map((row) => row.jotformSubmissionId), ["1002"]);
-  assert.deepEqual(client.snapshot().activities.map((row) => row.quantity), [7]);
+  assert.equal(summary.saved, 2); assert.equal(summary.failed, 0); assert.equal(summary.skipped, 0);
+  assert.deepEqual(summary.submissionErrors, []);
+  assert.deepEqual(client.snapshot().sources.map((row) => row.sourceType), ["INVENTORY", "INVENTORY"]);
+  assert.deepEqual(client.snapshot().activities.map((row) => [row.quantity, row.direction]), [[2, "OUT"], [7, "IN"]]);
 });
 
 test("merged KAN-18 rejects object/array quantities and continues to a valid submission", async () => {
@@ -329,7 +327,7 @@ test("seeded randomized mixed batches preserve totals, persistence and duplicate
         const id = String(9000 + random(4)), invalid = random(4) === 0;
         const row = raw(form, id, form.sourceType === "INVENTORY" ? String(1 + random(20)) : "Yes");
         if (invalid) {
-          if (form.sourceType === "INVENTORY") row.answers["51"].answer = "-1";
+          if (form.sourceType === "INVENTORY") row.answers["51"].answer = "1.5";
           else row.answers["88"] = { answer: "Yes" };
           failed++;
         } else {

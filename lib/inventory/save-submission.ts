@@ -71,11 +71,6 @@ type SaveSubmissionTx = {
   };
 };
 
-const SOURCE_TO_DIRECTION: Record<SourceType, InventoryDirection> = {
-  INVENTORY: "IN",
-  REFERRAL: "OUT",
-};
-
 function normalizeCode(code: string): string {
   return String(code ?? "").trim();
 }
@@ -88,7 +83,7 @@ function validateInput(input: SubmissionSaveInput) {
     throw new Error("Submission must include jotformFormId and jotformSubmissionId.");
   }
 
-  const expectedDirection = SOURCE_TO_DIRECTION[input.submission.sourceType];
+  const allowedDirections: InventoryDirection[] = input.submission.sourceType === "INVENTORY" ? ["IN", "OUT"] : ["OUT"];
   for (const activity of input.inventoryActivities) {
     const normalizedCode = normalizeCode(activity.itemCode);
     if (!normalizedCode) {
@@ -97,7 +92,7 @@ function validateInput(input: SubmissionSaveInput) {
     if (!Number.isInteger(activity.quantity) || activity.quantity <= 0) {
       throw new Error(`Invalid quantity for item ${normalizedCode}: ${String(activity.quantity)}`);
     }
-    if (activity.direction !== expectedDirection) {
+    if (!allowedDirections.includes(activity.direction)) {
       throw new Error(
         `Direction ${activity.direction} does not match source type ${input.submission.sourceType}.`,
       );

@@ -218,7 +218,7 @@ function parseQuantity(value: JotformAnswerValue): number | null {
     return null;
   }
 
-  if (!Number.isInteger(numeric) || numeric < 0) {
+  if (!Number.isInteger(numeric)) {
     throw new Error(`Invalid quantity value: ${String(extracted)}`);
   }
 
@@ -271,8 +271,8 @@ export function normalizeInventorySubmission(
 
     inventoryActivities.push({
       itemCode: normalizedItemCode,
-      quantity: Math.trunc(quantity),
-      direction: InventoryDirection.IN,
+      quantity: Math.abs(quantity),
+      direction: quantity < 0 ? InventoryDirection.OUT : InventoryDirection.IN,
     });
   }
 

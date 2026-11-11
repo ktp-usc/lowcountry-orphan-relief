@@ -81,10 +81,11 @@ export async function importSubmissions(
         const normalize = form.sourceType === "INVENTORY" ? dependencies.normalizeInventory : dependencies.normalizeReferral;
         const input = normalize(form.id, raw);
         const metadata = input.submission;
-        const direction = form.sourceType === "INVENTORY" ? "IN" : "OUT";
+        const hasInvalidDirection = input.inventoryActivities.some((activity) =>
+          form.sourceType === "INVENTORY" ? !["IN", "OUT"].includes(activity.direction) : activity.direction !== "OUT");
         if (metadata.jotformFormId !== form.id || metadata.jotformSubmissionId !== id
           || metadata.location !== form.location || metadata.sourceType !== form.sourceType
-          || input.inventoryActivities.some((activity) => activity.direction !== direction)) {
+          || hasInvalidDirection) {
           throw new Error("Normalization does not match the configured form.");
         }
         if (!(metadata.submissionDate instanceof Date) || Number.isNaN(metadata.submissionDate.getTime())) {
