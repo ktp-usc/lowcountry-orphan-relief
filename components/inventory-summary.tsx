@@ -5,7 +5,7 @@ export type InventorySummaryMetric = {
   id: string;
   label: string;
   /** Numbers use en-US formatting; strings support currency and signed values. */
-  value: number | string;
+  value: number | string | null;
   emphasized?: boolean;
 };
 
@@ -19,33 +19,11 @@ export type InventorySummaryProps = {
 };
 
 const placeholderMetrics: readonly InventorySummaryMetric[] = [
-  {
-    id: "initial-count",
-    label: "Initial count",
-    value: 12040,
-  },
-  {
-    id: "incoming",
-    label: "Items added",
-    value: 1250,
-  },
-  {
-    id: "outgoing",
-    label: "Items distributed",
-    value: 840,
-  },
-  {
-    id: "current-count",
-    label: "Current count",
-    value: 12450,
-    emphasized: true,
-  },
-  {
-    id: "current-value",
-    label: "Current value",
-    value: "$62,250",
-    emphasized: true,
-  },
+  { id: "initial-count", label: "Initial count", value: 12040 },
+  { id: "incoming", label: "Items added", value: 1250 },
+  { id: "outgoing", label: "Items distributed", value: 840 },
+  { id: "current-count", label: "Current count", value: 12450, emphasized: true },
+  { id: "current-value", label: "Current value", value: "$62,250", emphasized: true },
 ];
 
 /**
@@ -66,40 +44,39 @@ export default function InventorySummary({
     <section
       aria-label={title}
       className={cn(
-        "min-w-0 rounded-xl border border-border bg-card text-card-foreground",
+        "min-w-0 overflow-hidden rounded-[9px] border border-border bg-card text-card-foreground",
         className,
       )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-5 sm:px-6">
-        <h2 className="min-w-0 break-words text-lg font-semibold tracking-tight">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-[17px] pb-3 pt-[17px]">
+        <h2 className="min-w-0 break-words font-heading text-sm font-bold text-foreground">
           {title}
         </h2>
-        <span className="text-2xl font-medium tabular-nums">{year}</span>
+        <span className="font-heading text-sm font-bold tabular-nums text-foreground">
+          {year}
+        </span>
       </div>
 
       {displayMetrics.length > 0 ? (
-        <dl className="flex flex-col border-t border-border lg:flex-row">
-          {displayMetrics.map(({ id, label, value, emphasized = false }) => (
+        <dl className="grid grid-cols-2 gap-px border-t border-line-soft bg-line-soft lg:grid-cols-5">
+          {displayMetrics.map(({ id, label, value }) => (
             <div
               key={id}
-              className="min-w-0 flex-1 border-border px-5 py-5 not-first:border-t sm:px-6 lg:not-first:border-t-0 lg:not-first:border-l"
+              className="flex min-w-0 flex-col gap-[7px] bg-card px-4 py-[13px] last:col-span-2 lg:last:col-span-1"
             >
-              <dt className={cn("text-sm font-medium", emphasized && "font-bold")}>
-                {label}
-              </dt>
-              <dd
-                className={cn(
-                  "mt-2 break-words text-3xl font-medium tracking-tight tabular-nums",
-                  emphasized && "font-bold",
-                )}
-              >
-                {typeof value === "number" ? value.toLocaleString("en-US") : value}
+              <dt className="text-xs text-muted-foreground">{label}</dt>
+              <dd className="break-words font-heading text-xl font-bold tabular-nums text-foreground">
+                {value === null
+                  ? "-"
+                  : typeof value === "number"
+                    ? value.toLocaleString("en-US")
+                    : value}
               </dd>
             </div>
           ))}
         </dl>
       ) : (
-        <p className="border-t border-border px-5 py-6 text-sm text-muted-foreground sm:px-6">
+        <p className="border-t border-line-soft px-[17px] py-6 text-[11px] text-muted-foreground">
           No inventory summary available.
         </p>
       )}

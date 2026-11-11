@@ -50,6 +50,96 @@ test("returns [] for a successfully empty form", async (t) => {
   assert.equal(requests.length, 1);
 });
 
+test("maxSubmissions caps the initial API request and stops at the bound", async (t) => {
+  const requests = stubPages(t, [page([submission("1"), submission("2"), submission("3")])]);
+  assert.deepEqual((await fetchSubmissions(formId, { maxSubmissions: 2 })).map((row) => row.id), ["1", "2"]);
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url.searchParams.get("limit"), "2");
+});
+
+test("bounded pagination handles short/overlapping pages without an extra request", async (t) => {
+  const requests = stubPages(t, [page([submission("1")]), page([submission("1"), submission("2")]), page([submission("3")])]);
+  assert.deepEqual((await fetchSubmissions(formId, { pageSize: 2, maxSubmissions: 3 })).map((row) => row.id), ["1", "2", "3"]);
+  assert.deepEqual(requests.map((request) => request.url.searchParams.get("limit")), ["2", "2", "1"]);
+  assert.deepEqual(requests.map((request) => request.url.searchParams.get("offset")), ["0", "1", "3"]);
+});
+
+test("bounded pagination accepts an early empty page and rejects invalid limits", async (t) => {
+  stubPages(t, [page([submission("1")]), page([])]);
+  assert.equal((await fetchSubmissions(formId, { maxSubmissions: 4 })).length, 1);
+  for (const maxSubmissions of [0, -1, 1.5, null, "2", Infinity, NaN, Number.MAX_SAFE_INTEGER + 1]) {
+    await assert.rejects(fetchSubmissions(formId, { maxSubmissions }), /positive safe integer/);
+  }
+});
+
+test("reporting mode skips a malformed record and returns the valid record after it", async (t) => {
+  const issues = [];
+  const bad = { ...submission("1"), created_at: { private: "PRIVATE ANSWER" } };
+  const requests = stubPages(t, [page([bad, submission("2")])]);
+  assert.deepEqual((await fetchSubmissions(formId, { maxSubmissions: 2, onInvalidSubmission: (issue) => issues.push(issue) })).map((row) => row.id), ["2"]);
+  assert.deepEqual(issues, [{ formId, submissionId: "1", recordIndex: 0, reason: "invalid-created-at" }]);
+  assert.equal(requests.length, 1);
+  assert.equal(JSON.stringify(issues).includes("PRIVATE"), false);
+});
+
+test("an all-malformed page does not stop a later page containing valid submissions", async (t) => {
+  const issues = [];
+  const requests = stubPages(t, [
+    page([{ ...submission("1"), created_at: 123 }, { ...submission("2"), answers: [] }]),
+    page([submission("3")]), page([]),
+  ]);
+  assert.deepEqual((await fetchSubmissions(formId, { pageSize: 2, onInvalidSubmission: (issue) => issues.push(issue) })).map((row) => row.id), ["3"]);
+  assert.deepEqual(issues.map(({ submissionId, recordIndex }) => ({ submissionId, recordIndex })), [
+    { submissionId: "1", recordIndex: 0 }, { submissionId: "2", recordIndex: 1 },
+  ]);
+  assert.deepEqual(requests.map(({ url }) => url.searchParams.get("offset")), ["0", "2", "3"]);
+});
+
+test("malformed records consume the explicit sample budget instead of triggering replacement fetches", async (t) => {
+  const issues = [];
+  const requests = stubPages(t, [page([null, { ...submission("1"), id: "PRIVATE-ID" }, submission("3")])]);
+  assert.deepEqual(await fetchSubmissions(formId, { maxSubmissions: 2, onInvalidSubmission: (issue) => issues.push(issue) }), []);
+  assert.equal(issues.length, 2);
+  assert.deepEqual(issues.map((issue) => issue.submissionId), ["unknown", "unknown"]);
+  assert.deepEqual(issues.map((issue) => issue.recordIndex), [0, 1]);
+  assert.equal(requests.length, 1); assert.equal(requests[0].url.searchParams.get("limit"), "2");
+  assert.equal(JSON.stringify(issues).includes("PRIVATE"), false);
+});
+
+test("a wrong-form record cannot hide a valid record with the same submission ID", async (t) => {
+  const issues = [];
+  stubPages(t, [page([{ ...submission("1"), form_id: "54321" }, submission("1")])]);
+  assert.deepEqual((await fetchSubmissions(formId, { maxSubmissions: 2, onInvalidSubmission: (issue) => issues.push(issue) })).map((row) => row.id), ["1"]);
+  assert.equal(issues.length, 1); assert.equal(issues[0].reason, "wrong-form");
+});
+
+test("overlapping malformed IDs are reported once while pagination continues", async (t) => {
+  const issues = [];
+  const bad = { ...submission("1"), updated_at: [] };
+  const requests = stubPages(t, [page([bad, submission("2")]), page([bad, submission("3")])]);
+  assert.deepEqual((await fetchSubmissions(formId, { pageSize: 2, maxSubmissions: 3, onInvalidSubmission: (issue) => issues.push(issue) })).map((row) => row.id), ["2", "3"]);
+  assert.equal(issues.length, 1);
+  assert.deepEqual(requests.map(({ url }) => url.searchParams.get("limit")), ["2", "1"]);
+});
+
+test("repeated unidentifiable pages fail safely without duplicating rejection reports", async (t) => {
+  const issues = [];
+  const badPage = [{ answers: { private: "PRIVATE ANSWER" } }];
+  stubPages(t, [page(badPage), page(badPage)]);
+  await assert.rejects(fetchSubmissions(formId, { onInvalidSubmission: (issue) => issues.push(issue) }), (error) => {
+    assert.match(error.message, /Pagination made no progress/);
+    assert.equal(error.message.includes("PRIVATE"), false);
+    return true;
+  });
+  assert.equal(issues.length, 1);
+});
+
+test("strict callers still reject malformed records and invalid reporting options", async (t) => {
+  stubPages(t, [page([{ ...submission("1"), answers: [] }, submission("2")])]);
+  await assert.rejects(fetchSubmissions(formId), /invalid submission/);
+  await assert.rejects(fetchSubmissions(formId, { onInvalidSubmission: "PRIVATE" }), /onInvalidSubmission must be a function/);
+});
+
 test("fetches full pages through a final empty page", async (t) => {
   const rows = ["1", "2", "3", "4"].map((id) => submission(id));
   const requests = stubPages(t, [page(rows.slice(0, 2)), page(rows.slice(2)), page([])]);

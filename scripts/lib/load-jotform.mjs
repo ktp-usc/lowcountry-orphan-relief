@@ -6,7 +6,7 @@ export async function loadJotform() {
   if (process.features.typescript) return import(sourceUrl.href);
 
   // Node 20 does not strip TypeScript. Use the project's existing dev dependency.
-  // This source is standalone and has no runtime imports to resolve from the data URL.
+  // The source has no relative runtime imports; Node built-ins resolve from the data URL.
   const { default: ts } = await import("typescript");
   const { outputText } = ts.transpileModule(await readFile(sourceUrl, "utf8"), {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },

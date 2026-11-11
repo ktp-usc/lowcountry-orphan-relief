@@ -12,10 +12,22 @@ import {
 
 // Set these to the corresponding Jotform URLs.
 const forms = [
-  { label: "Lowcountry: Add Inventory Form", href: "https://form.jotform.com/261498369429070" },
-  { label: "Midlands: Add Inventory Form", href: "https://form.jotform.com/261526295444158" },
-  { label: "Lowcountry: Referral Form", href: "https://form.jotform.com/241895593214161" },
-  { label: "Midlands: Referral Form", href: "https://form.jotform.com/250054265404145" },
+    {
+        label: "Lowcountry: Inventory Form",
+        href: "https://form.jotform.com/241895593214161",
+    },
+    {
+        label: "Midlands: Inventory Form",
+        href: "https://form.jotform.com/250054265404145",
+    },
+    {
+        label: "Lowcountry: Referral Form",
+        href: "https://form.jotform.com/261498369429070",
+    },
+    {
+        label: "Midlands: Referral Form",
+        href: "https://form.jotform.com/261526295444158",
+    },
 ];
 
 export function JotformLinksMenu() {
