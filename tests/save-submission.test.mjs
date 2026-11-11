@@ -106,7 +106,7 @@ const items = [
   { id: 3, code: "DIAPERS" },
 ];
 
-test("saves inventory and referral submissions with matching source type and direction", async () => {
+test("saves inventory IN and OUT activities and referral OUT activities", async () => {
   const prisma = createMockPrismaClient(items);
 
   const inventoryInput = {
@@ -120,6 +120,7 @@ test("saves inventory and referral submissions with matching source type and dir
     inventoryActivities: [
       { itemCode: "MENS_TOPS", quantity: 4, direction: "IN" },
       { itemCode: "WIPES", quantity: 2, direction: "IN" },
+      { itemCode: "DIAPERS", quantity: 1, direction: "OUT" },
     ],
   };
 
@@ -142,7 +143,7 @@ test("saves inventory and referral submissions with matching source type and dir
   assert.deepEqual(inventoryResult, {
     status: "saved",
     sourceSubmissionId: 1,
-    savedActivityCount: 2,
+    savedActivityCount: 3,
   });
 
   assert.deepEqual(referralResult, {
@@ -153,8 +154,8 @@ test("saves inventory and referral submissions with matching source type and dir
 
   const snapshot = prisma._snapshot();
   assert.equal(snapshot.sourceSubmissions.length, 2);
-  assert.equal(snapshot.inventoryActivities.length, 3);
-  assert.deepEqual(snapshot.inventoryActivities.map((row) => row.direction), ["IN", "IN", "OUT"]);
+  assert.equal(snapshot.inventoryActivities.length, 4);
+  assert.deepEqual(snapshot.inventoryActivities.map((row) => row.direction), ["IN", "IN", "OUT", "OUT"]);
 });
 
 test("skips an existing jotform form and submission combination", async () => {
