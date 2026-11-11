@@ -7,6 +7,25 @@ import { loadReferral } from "../scripts/lib/load-referral.mjs";
 const { normalizeReferralSubmission: normalize } = await loadReferral();
 const lor = "261498369429070";
 const mor = "261526295444158";
+const baseQuantities = {
+  TOPS: 5,
+  BOTTOMS: 4,
+  JACKETS_HOODIES: 1,
+  DRESSES: 2,
+  PAJAMAS: 1,
+  UNDERWEAR: 1,
+  SHOES: 1,
+  SOCKS: 1,
+  WIPES: 1,
+  TOILETRIES: 1,
+  DIAPERS: 1,
+  PULL_UPS: 1,
+  SCHOOL: 1,
+  UNIFORM_TOPS: 2,
+  UNIFORM_BOTTOMS: 2,
+  BOOKS: 2,
+  STUFFED_ANIMALS: 2,
+};
 const fixture = (name) => JSON.parse(readFileSync(new URL(`../lib/jotform/sample-data/${name}-referral-submission.json`, import.meta.url), "utf8"));
 const raw = (values = {}, formId = lor, extra = {}) => ({
   id: "900000000000000003", form_id: formId, created_at: "2026-07-01 12:00:00",
@@ -14,8 +33,25 @@ const raw = (values = {}, formId = lor, extra = {}) => ({
   ...extra,
 });
 const activities = (data, options) => normalize(data.form_id, data, options).inventoryActivities;
-const activity = (itemCode, quantity = 1) => ({ itemCode, quantity, direction: "OUT" });
+const quantityForItemCode = (itemCode) => {
+  if (itemCode === "BOOKS") return baseQuantities.BOOKS;
+  if (itemCode === "STUFFED_ANIMALS") return baseQuantities.STUFFED_ANIMALS;
+  if (itemCode === "WIPES") return baseQuantities.WIPES;
+  if (itemCode === "DIAPERS") return baseQuantities.DIAPERS;
+  if (itemCode === "PULL_UPS") return baseQuantities.PULL_UPS;
+  if (itemCode.startsWith("TOILETRY_KIT_")) return baseQuantities.TOILETRIES;
+  if (itemCode.endsWith("_SCHOOL_BOOKBAG_SUPPLIES")) return baseQuantities.SCHOOL;
+  if (itemCode === "CHILDRENS_SOCKS") return baseQuantities.SOCKS;
+
+  const clothing = /^(?:MENS|WOMENS|CHILDRENS)_(TOPS|BOTTOMS|JACKETS_HOODIES|DRESSES|PAJAMAS|UNDERWEAR|SHOES)$/.exec(itemCode);
+  if (!clothing) return 1;
+
+  const [, category] = clothing;
+  return baseQuantities[category];
+};
+const activity = (itemCode, quantity = quantityForItemCode(itemCode)) => ({ itemCode, quantity, direction: "OUT" });
 const sorted = (rows) => rows.toSorted((a, b) => a.itemCode.localeCompare(b.itemCode));
+const withBaseline = (rows = []) => sorted([...rows, activity("BOOKS"), activity("STUFFED_ANIMALS")]);
 
 test("LOR made-up API sample preserves the KAN-16 contract and combines top requests", () => {
   const result = normalize(lor, fixture("lor"));
@@ -25,8 +61,9 @@ test("LOR made-up API sample preserves the KAN-16 contract and combines top requ
     location: "LOWCOUNTRY", sourceType: "REFERRAL", submissionDate: new Date("2026-07-15T14:30:00Z"),
   });
   assert.deepEqual(sorted(result.inventoryActivities), sorted([
-    activity("CHILDRENS_TOPS", 2), activity("MENS_BOTTOMS"), activity("CHILDRENS_SOCKS"),
+    activity("CHILDRENS_TOPS", 7), activity("MENS_BOTTOMS"), activity("CHILDRENS_SOCKS"),
     activity("WIPES"), activity("TOILETRY_KIT_6_11_YRS"), activity("ELEMENTARY_SCHOOL_BOOKBAG_SUPPLIES"),
+    activity("BOOKS"), activity("STUFFED_ANIMALS"),
   ]));
 });
 
@@ -35,8 +72,9 @@ test("MOR made-up API sample uses Midlands, winter time and its own supply mappi
   assert.equal(result.submission.location, "MIDLANDS");
   assert.equal(result.submission.submissionDate.toISOString(), "2026-01-15T15:30:00.000Z");
   assert.deepEqual(sorted(result.inventoryActivities), sorted([
-    activity("WOMENS_TOPS"), activity("CHILDRENS_DRESSES"), activity("CHILDRENS_BOTTOMS"),
+    activity("WOMENS_TOPS"), activity("CHILDRENS_DRESSES"), activity("CHILDRENS_BOTTOMS", 2),
     activity("PULL_UPS"), activity("TOILETRY_KIT_12_18_YRS"), activity("MIDDLE_HIGH_SCHOOL_BOOKBAG_SUPPLIES"),
+    activity("BOOKS"), activity("STUFFED_ANIMALS"),
   ]));
 });
 
@@ -53,19 +91,22 @@ for (const formId of [lor, mor]) {
           // Opposite/hidden branch and sizes deliberately conflict with the active branch.
           const oppositeId = sex === "Male" ? femaleId : maleId;
           const data = raw({ "17": sex, [fieldId]: "Yes", [typeId]: type, [oppositeId]: "Adult", "59": "XL" }, formId);
-          assert.deepEqual(activities(data), [activity(`${type === "Adult" ? prefix : "CHILDRENS"}_${category}`)]);
+          assert.deepEqual(
+            sorted(activities(data)),
+            withBaseline([activity(`${type === "Adult" ? prefix : "CHILDRENS"}_${category}`)]),
+          );
         });
       }
     }
   }
   for (const [type, prefix] of [["Adult", "WOMENS"], ["Child/Baby", "CHILDRENS"]]) {
     test(`${formId}: dresses ${type} uses its single type selector`, () => {
-      assert.deepEqual(activities(raw({ "117": "Yes", "119": type }, formId)), [activity(`${prefix}_DRESSES`)]);
+      assert.deepEqual(sorted(activities(raw({ "117": "Yes", "119": type }, formId))), withBaseline([activity(`${prefix}_DRESSES`)]));
     });
   }
   for (const [choice, code] of [["Diapers", "DIAPERS"], ["Pull Ups", "PULL_UPS"]]) {
     test(`${formId}: ${choice} counts one pack without inferring quantity from size`, () => {
-      assert.deepEqual(activities(raw({ "159": choice, "78": "Size 6", "80": "4T/5T" }, formId)), [activity(code)]);
+      assert.deepEqual(sorted(activities(raw({ "159": choice, "78": "Size 6", "80": "4T/5T" }, formId))), withBaseline([activity(code)]));
     });
   }
 }
@@ -77,7 +118,10 @@ for (const [age, code] of [
 ]) {
   test(`toiletry age band: ${age}`, () => {
     for (const formId of [lor, mor]) {
-      assert.deepEqual(activities(raw({ "85": "Yes", "158": age }, formId)), [activity(`TOILETRY_KIT_${code}_YRS`)]);
+      assert.deepEqual(
+        sorted(activities(raw({ "85": "Yes", "158": age }, formId))),
+        withBaseline([activity(`TOILETRY_KIT_${code}_YRS`)]),
+      );
     }
   });
 }
@@ -89,17 +133,24 @@ test("blank, no, none and unselected requests skip stale hidden selectors and si
     "159": "None", "78": "Size 1", "80": "4T/5T", "83": "None",
     "177": ["Navy", "White"], "183": ["Navy", "White"], "184": ["Khaki"],
   });
-  assert.deepEqual(activities(data), []);
-  assert.deepEqual(activities(raw()), []);
-  assert.deepEqual(activities(raw({}, mor, { answers: undefined })), []);
+  const baseline = withBaseline();
+  assert.deepEqual(sorted(activities(data)), baseline);
+  assert.deepEqual(sorted(activities(raw())), baseline);
+  assert.deepEqual(sorted(activities(raw({}, mor, { answers: undefined }))), baseline);
   for (const value of [undefined, null, "", "No", "Maybe", 1, -1, true, false, ["Yes"], { value: "Yes" }]) {
-    assert.deepEqual(activities(raw({ "81": value })), []);
+    assert.deepEqual(sorted(activities(raw({ "81": value }))), baseline);
   }
 });
 
 test("normalizes case and whitespace only for recognized choices", () => {
-  assert.deepEqual(activities(raw({ "81": " YES ", "159": " pull UPS " })), [activity("WIPES"), activity("PULL_UPS")]);
-  assert.deepEqual(activities(raw({ "159": "Both", "83": "Unknown school" })), []);
+  assert.deepEqual(
+    sorted(activities(raw({ "81": " YES ", "159": " pull UPS " }))),
+      withBaseline([activity("WIPES"), activity("PULL_UPS")]),
+  );
+  assert.deepEqual(
+    sorted(activities(raw({ "159": "Both", "83": "Unknown school" }))),
+      withBaseline(),
+  );
 });
 
 test("quantity overrides are per request and merged categories are summed", () => {
@@ -114,6 +165,30 @@ test("quantity overrides are per request and merged categories are summed", () =
   assert.throws(() => activities(raw(), { quantities: [] }), /configuration/);
   assert.throws(() => activities(raw(), null), /configuration/);
   assert.throws(() => activities(fixture("lor"), { quantities: { TOPS: 2_147_483_647 } }), /integer limit/);
+});
+
+test("child/baby pajamas add three extra sleepers for ages 9 months and younger", () => {
+  assert.deepEqual(
+    sorted(activities(raw({ "17": "Female", "126": "Yes", "128": "Child/Baby", "158": "6-9 Months" }))),
+    withBaseline([activity("CHILDRENS_PAJAMAS", 4)]),
+  );
+  assert.deepEqual(
+    sorted(activities(raw({ "17": "Female", "126": "Yes", "128": "Child/Baby", "158": "1 year" }))),
+    withBaseline([activity("CHILDRENS_PAJAMAS", 1)]),
+  );
+  assert.deepEqual(
+    sorted(activities(raw({ "17": "Male", "126": "Yes", "127": "Adult", "158": "6-9 Months" }))),
+    withBaseline([activity("MENS_PAJAMAS", 1)]),
+  );
+});
+
+test("every referral submission includes two books and two stuffed animals", () => {
+  for (const formId of [lor, mor]) {
+    assert.deepEqual(
+      sorted(activities(raw({}, formId))),
+      withBaseline(),
+    );
+  }
 });
 
 test("every producible item code exists in the real IRS seed catalogue", () => {
@@ -140,7 +215,7 @@ test("every producible item code exists in the real IRS seed catalogue", () => {
       }
     }
   }
-  assert.equal(emitted.size, 29);
+  assert.equal(emitted.size, 31);
 });
 
 test("selected requests without classification reject without revealing answers", () => {
@@ -161,12 +236,15 @@ test("only allowlisted answer payloads are read, and personal information never 
     }
     data.answers["9999"] = { text: "Wipes", name: "wipes", answer: "Yes" };
     const result = normalize(formId, data);
-    assert.deepEqual(activities(data), [activity("WIPES")]);
+    assert.deepEqual(sorted(activities(data)), withBaseline([activity("WIPES")]));
     assert.equal(JSON.stringify(result).includes("PRIVATE"), false);
     assert.deepEqual(Object.keys(result.submission).sort(), ["jotformFormId", "jotformSubmissionId", "location", "sourceType", "submissionDate"]);
     assert.deepEqual(Object.keys(result.inventoryActivities[0]).sort(), ["direction", "itemCode", "quantity"]);
   }
-  assert.deepEqual(activities(raw({}, lor, { answers: { "81": { text: "Yes", name: "Yes" } } })), []);
+  assert.deepEqual(
+    sorted(activities(raw({}, lor, { answers: { "81": { text: "Yes", name: "Yes" } } }))),
+    withBaseline(),
+  );
 });
 
 function deepFreeze(value) {
