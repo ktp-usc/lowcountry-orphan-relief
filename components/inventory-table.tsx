@@ -41,19 +41,19 @@ const headings = [
 ];
 
 const numberCell =
-  "h-[29px] px-3 py-0 text-right text-[10px] font-normal tabular-nums text-foreground";
+  "h-10 px-3 py-0 text-right text-sm font-normal tabular-nums text-foreground";
 
 export default function InventoryTable({ rows }: InventoryTableProps) {
   return (
     <section className="overflow-hidden rounded-[9px] border border-border bg-card">
-      <Table className="min-w-[900px] border-collapse font-sans text-[10px] text-foreground">
+      <Table className="min-w-[900px] border-collapse font-sans text-sm text-foreground">
         <TableHeader className="bg-table-header">
           <TableRow className="border-b border-line-soft hover:bg-transparent">
             {headings.map((heading, index) => (
               <TableHead
                 key={heading}
                 scope="col"
-                className={`h-9 px-3 text-[9px] font-bold uppercase tracking-[0.35px] text-muted-foreground ${
+                className={`h-9 px-3 text-xs font-bold uppercase tracking-[0.35px] text-muted-foreground ${
                   index === 0 ? "min-w-[250px] text-left" : "text-right"
                 }`}
               >
@@ -73,7 +73,7 @@ export default function InventoryTable({ rows }: InventoryTableProps) {
                 <p className="text-[11px] font-semibold text-foreground">
                   No inventory data available.
                 </p>
-                <p className="mt-1 text-[10px] text-muted-foreground">
+                <p className="mt-1 text-sm text-muted-foreground">
                   Inventory items will appear here when data is provided.
                 </p>
               </TableCell>
@@ -84,7 +84,7 @@ export default function InventoryTable({ rows }: InventoryTableProps) {
                 key={row.item}
                 className="border-b border-line-soft even:bg-stripe hover:bg-transparent"
               >
-                <TableCell className="h-[29px] min-w-[250px] whitespace-normal px-3 py-0 text-[10px] font-medium text-foreground">
+                <TableCell className="h-10 min-w-[250px] whitespace-normal px-3 py-0 text-sm font-medium text-foreground">
                   {row.item}
                 </TableCell>
 

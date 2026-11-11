@@ -9,8 +9,9 @@ const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans" });
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
 
 export const metadata: Metadata = {
-    title: "Future KTP Web App",
-    description: "KTP SP26"
+    title: "Orphan Relief Inventory",
+    description:
+        "Inventory dashboard for Lowcountry and Midlands Orphan Relief.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

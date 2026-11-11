@@ -49,10 +49,10 @@ export default function InventorySummary({
       )}
     >
       <div className="flex flex-wrap items-center justify-between gap-3 px-[17px] pb-3 pt-[17px]">
-        <h2 className="min-w-0 break-words font-heading text-[13px] font-bold text-foreground">
+        <h2 className="min-w-0 break-words font-heading text-sm font-bold text-foreground">
           {title}
         </h2>
-        <span className="font-heading text-[13px] font-bold tabular-nums text-foreground">
+        <span className="font-heading text-sm font-bold tabular-nums text-foreground">
           {year}
         </span>
       </div>
@@ -64,8 +64,8 @@ export default function InventorySummary({
               key={id}
               className="flex min-w-0 flex-col gap-[7px] bg-card px-4 py-[13px] last:col-span-2 lg:last:col-span-1"
             >
-              <dt className="text-[9px] text-muted-foreground">{label}</dt>
-              <dd className="break-words font-heading text-[17px] font-bold tabular-nums text-foreground">
+              <dt className="text-xs text-muted-foreground">{label}</dt>
+              <dd className="break-words font-heading text-xl font-bold tabular-nums text-foreground">
                 {value === null
                   ? "-"
                   : typeof value === "number"

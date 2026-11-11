@@ -19,7 +19,7 @@ const locations = [
 ];
 
 const triggerClass =
-  "h-[35px] data-[size=default]:h-[35px] rounded-[7px] border-border bg-card px-[11px] text-[11px] text-foreground shadow-none";
+    "h-10 data-[size=default]:h-10 rounded-[7px] border-border bg-card px-[11px] text-sm text-foreground shadow-none";
 
 type DashboardFiltersProps = {
   selectedYear: string;
@@ -38,7 +38,7 @@ export function DashboardFilters({
     <div className="flex flex-wrap items-center gap-[11px]">
       {/* Year Filter */}
       <div className="flex items-center gap-2">
-        <label className="whitespace-nowrap text-[10px] text-muted-foreground">
+        <label className="whitespace-nowrap text-xs text-muted-foreground">
           Year
         </label>
 
@@ -49,7 +49,7 @@ export function DashboardFilters({
 
           <SelectContent>
             {years.map((year) => (
-              <SelectItem key={year} value={year} className="text-[11px]">
+              <SelectItem key={year} value={year} className="text-sm">
                 {year}
               </SelectItem>
             ))}
@@ -59,7 +59,7 @@ export function DashboardFilters({
 
       {/* Location Filter */}
       <div className="flex items-center gap-2">
-        <label className="whitespace-nowrap text-[10px] text-muted-foreground">
+        <label className="whitespace-nowrap text-xs text-muted-foreground">
           Location
         </label>
 
@@ -73,7 +73,7 @@ export function DashboardFilters({
               <SelectItem
                 key={location.value}
                 value={location.value}
-                className="text-[11px]"
+                className="text-sm"
               >
                 {location.label}
               </SelectItem>

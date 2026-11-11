@@ -11,10 +11,8 @@ export function SignOutButton() {
   const queryClient = useQueryClient();
 
   return (
-    <Button
+  <Button
       type="button"
-      variant="outline"
-      className="hover:bg-accent hover:text-accent-foreground"
       onClick={() =>
         authClient.signOut({
           fetchOptions: {
