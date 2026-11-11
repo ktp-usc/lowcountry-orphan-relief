@@ -5,6 +5,7 @@ import { useState } from "react";
 import { DashboardFilters } from "@/components/DashboardFilters";
 import InventorySummary from "@/components/inventory-summary";
 import InventoryTable from "@/components/inventory-table";
+import { JotformLinksMenu } from "@/components/jotform-links-menu";
 import { calculateRow } from "@/lib/inventory/calculate-row";
 import { sampleInputs } from "@/lib/inventory/sample-data";
 import { summarizeInventory } from "@/lib/inventory/summarize";
@@ -45,10 +46,11 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-background px-6 py-8 md:px-10">
-      <header className="mb-8">
+      <header className="mb-8 flex items-start justify-between gap-4">
         <h1 className="text-2xl font-semibold text-foreground">
           Lowcountry Orphan Relief Inventory
         </h1>
+        <JotformLinksMenu />
       </header>
 
       <section className="mb-6">
