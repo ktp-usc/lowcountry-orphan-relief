@@ -76,8 +76,8 @@ export default function Home() {
     item: row.itemName,
     initialCount: row.initialCount,
     initialValue: row.initialValue,
-    itemsSubtracted: row.quantitySub,
-    itemsAdded: row.quantityAdd,
+    itemsSubtracted: row.itemsSubtracted,
+    itemsAdded: row.itemsAdded,
     currentCount: row.currentCount,
     currentValue: row.currentValue,
   }));
@@ -118,7 +118,7 @@ export default function Home() {
               className="mb-6 rounded-md border border-border bg-muted px-4 py-3 text-sm text-foreground"
             >
               Some items are missing a {selectedYear} valuation, so their
-              values show as "-" and the total value cannot be calculated.
+              values show as &quot;-&quot; and the total value cannot be calculated.
             </p>
           )}
 
