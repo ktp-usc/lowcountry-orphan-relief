@@ -14,6 +14,7 @@
     "test:referral": "node --test tests/normalize-referral.test.mjs",
     "import:jotform": "node scripts/run-jotform-import.mjs import",
     "test:jotform:import": "node --test tests/import-submissions.test.mjs",
+    "test:sync:submission": "node --test tests/sync-submission.test.mjs",
     "check:jotform:import": "node scripts/run-jotform-import.mjs check",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
