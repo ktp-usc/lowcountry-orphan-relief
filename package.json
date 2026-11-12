@@ -9,6 +9,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "inspect:sheets": "node --import tsx scripts/inspect-sheets.ts",
+    "test:sheets": "node --test tests/read-sheet.test.mjs",
     "test:jotform": "node scripts/test-jotform.mjs",
     "test:jotform:unit": "node --test tests/jotform-fetch.test.mjs",
     "test:referral": "node --test tests/normalize-referral.test.mjs",
