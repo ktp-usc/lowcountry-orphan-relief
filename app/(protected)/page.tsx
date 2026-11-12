@@ -11,6 +11,8 @@ import InventorySummary from "@/components/inventory-summary";
 import InventoryTable from "@/components/inventory-table";
 import { SignOutButton } from "@/components/sign-out-button";
 import { JotformLinksMenu } from "@/components/jotform-links-menu";
+import { InventoryEditor } from "@/components/inventory-editor";
+import { useQueryClient } from "@tanstack/react-query";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -23,6 +25,7 @@ export default function Home() {
   );
   const [selectedLocation, setSelectedLocation] = useState("LOWCOUNTRY");
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data, isPending, isError, error } = useQuery({
     queryKey: qk.dashboard(selectedYear, selectedLocation),
     queryFn: () => fetchDashboard(selectedYear, selectedLocation),
@@ -76,6 +79,7 @@ export default function Home() {
   const tableRows = rows.map((row) => ({
     item: row.itemName,
     initialCount: row.initialCount,
+    valuePerUnit: row.valuePerUnit,
     initialValue: row.initialValue,
     itemsSubtracted: row.itemsSubtracted,
     itemsAdded: row.itemsAdded,
@@ -91,6 +95,16 @@ export default function Home() {
         </h1>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
               <JotformLinksMenu />
+              <InventoryEditor year={selectedYear} location={selectedLocation} onSaved={(kind, scope) => {
+                if (kind === "valuations") {
+                  void Promise.all([
+                    queryClient.invalidateQueries({ queryKey: qk.dashboard(scope.year, "LOWCOUNTRY") }),
+                    queryClient.invalidateQueries({ queryKey: qk.dashboard(scope.year, "MIDLANDS") }),
+                  ]);
+                } else {
+                  void queryClient.invalidateQueries({ queryKey: qk.dashboard(scope.year, scope.location) });
+                }
+              }} />
               <SignOutButton />
           </div>
       </header>
