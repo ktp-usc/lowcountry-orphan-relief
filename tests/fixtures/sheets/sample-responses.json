@@ -792,7 +792,7 @@
         "location": "MIDLANDS",
         "sourceType": "REFERRAL",
         "submissionIdHeader": "Submission ID",
-        "submissionDateHeader": "Date"
+        "submissionDateHeader": "Submission Date"
       },
       "idIndex": 4,
       "headerResponse": {
@@ -814,10 +814,10 @@
                       {},
                       {
                         "userEnteredValue": {
-                          "stringValue": "Date"
+                          "stringValue": "Submission Date"
                         },
                         "effectiveValue": {
-                          "stringValue": "Date"
+                          "stringValue": "Submission Date"
                         },
                         "formattedValue": "Date"
                       },

@@ -1,36 +1,26 @@
 import type { SheetSource } from "./types.js";
 
-/** Spreadsheet IDs from the Resources section of the client project plan.
- * The supplied links omit gid. -1 deliberately blocks reads until the actual
- * tab IDs are verified; 0 would silently assume a particular tab.
- * Empty date headers also require verification against the live header row.
- */
 export const SHEET_SOURCES: readonly SheetSource[] = [
   {
-    key: "lor-inventory", spreadsheetId: "1Xb92CED0YS0wHgd5a1jBKHTYrkZaA6gP", tabId: -1,
+    key: "lor-inventory", spreadsheetId: "1wBOD_fPH7oei5zEfktdFt_-OCZGgsO9eqWCjmbMh-2E", tabId: 1993480790,
     jotformFormId: "241895593214161", location: "LOWCOUNTRY", sourceType: "INVENTORY",
-    submissionIdHeader: "Submission ID", submissionDateHeader: "",
+    submissionIdHeader: "Submission ID", submissionDateHeader: "Submission Date",
   },
   {
-    key: "mor-inventory", spreadsheetId: "1oa7mA59lDbmHNvf--z0lqd0U7chx6Bmh", tabId: -1,
+    key: "mor-inventory", spreadsheetId: "1dGDtxcFvryt0zE-6K9pVI0ZXCYQOwu-RALePOvATrF0", tabId: 51238458,
     jotformFormId: "250054265404145", location: "MIDLANDS", sourceType: "INVENTORY",
-    submissionIdHeader: "Submission ID", submissionDateHeader: "",
+    submissionIdHeader: "Submission ID", submissionDateHeader: "Submission Date",
   },
   {
-    key: "lor-referral", spreadsheetId: "1cNks4g6h9UIO_OekcnEdt_TfBrtz0mLx", tabId: -1,
+    key: "lor-referral", spreadsheetId: "1su1FCelCAoNnf5auudF_SmU30wLesNFIrmK7dZ-itIg", tabId: 1761833122,
     jotformFormId: "261498369429070", location: "LOWCOUNTRY", sourceType: "REFERRAL",
-    submissionIdHeader: "Submission ID", submissionDateHeader: "",
+    submissionIdHeader: "Submission ID", submissionDateHeader: "Submission Date",
   },
   {
-    key: "mor-referral", spreadsheetId: "14m2U-YXLsnUcQTRIXhzOtbwlT7Wjq5Wh", tabId: -1,
+    key: "mor-referral", spreadsheetId: "16UsDpGbgJTIOXB9czKf03tMnIohDIeoIrLFXc4lGLns", tabId: 493112246,
     jotformFormId: "261526295444158", location: "MIDLANDS", sourceType: "REFERRAL",
-    // The separate named Date column was identified in the ticket. Its meaning
-    // still needs confirmation; the unlabeled first column is never a fallback.
-    submissionIdHeader: "Submission ID", submissionDateHeader: "Date",
+    submissionIdHeader: "Submission ID", submissionDateHeader: "Submission Date",
   },
 ];
 
-/** Set only after checking the Submission ID fill on a real cancelled referral.
- * Sample tests use #ffff00, which is not evidence of the client's actual color.
- */
-export const REFERRAL_CANCELLATION_YELLOW: string | null = null;
+export const REFERRAL_CANCELLATION_YELLOW: string | null = "#ffff00";

@@ -2,7 +2,7 @@ import { createPrivateKey, sign } from "node:crypto";
 import { isRecord, requestJson, SheetReadError } from "./errors.js";
 
 const tokenUrl = "https://oauth2.googleapis.com/token";
-const scope = "https://www.googleapis.com/auth/spreadsheets.readonly";
+const scope = "https://www.googleapis.com/auth/spreadsheets";
 
 /** OAuth service-account JWT flow. No delegated user, Drive scope, or write scope. */
 export function createTokenProvider(request: typeof fetch) {

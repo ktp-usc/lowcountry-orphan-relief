@@ -171,17 +171,19 @@ dependency or lockfile update is required. API reference: [Jotform API](https://
 `readSheet(source, { limit })` in `lib/sheets/read-sheet.ts` is a read-only Google
 Sheets API hook. It returns `{ sourceKey, rows }`, where each row contains its
 actual 1-based spreadsheet row number, a string-valued map keyed by the original
-headers, and `cancelled`. All named columns are retained for the later normalizer.
-It does not normalize requests, calculate quantities, call Jotform, or write to
-the database. The shared contracts for the later Sheets tickets are in
-`lib/sheets/types.ts`.
+headers, and `cancelled`. Returned values are limited to Submission ID,
+Submission Date and the answer columns mapped in `lib/sheets/mappings.ts`.
+This includes male/female shoe type fields needed for sock classification;
+names, contact details, notes and unrelated columns are neither requested nor
+returned. The reader does not normalize requests, call Jotform or write to the
+database. Shared contracts live in `lib/sheets/types.ts`.
 
 Set `GOOGLE_SERVICE_ACCOUNT_JSON` in the ignored `.env.local` or `.env` file to
 the entire service-account JSON object. Use a single-quoted dotenv value and
-preserve JSON's escaped `\n` characters in `private_key`. The empty placeholder
-is in `.env.example`. Enable the Google Sheets API and share the four documents
-with the service account as **Viewer**. The reader requests only the
-`spreadsheets.readonly` scope. Existing process variables take precedence over
+preserve JSON's escaped `\n` characters in `private_key`. Enable the Google
+Sheets API and share the four documents with the service account as **Viewer**.
+The OAuth scope is `https://www.googleapis.com/auth/spreadsheets`; the reader
+only performs read operations. Existing process variables take precedence over
 `.env.local`, then `.env`. Keep these credentials server-only and out of git.
 
 ```bash
@@ -199,30 +201,15 @@ It needs no database or Jotform credentials. Run
 `npx tsc --noEmit -p tsconfig.sheets.json`, lint and build for type/application
 checks after installing dependencies and generating the Prisma types.
 
-`SHEET_SOURCES` contains the four spreadsheet IDs from the client notes and the
-original Jotform IDs used as database source identifiers. The supplied links do
-not contain tab IDs, and the live documents were inaccessible during this
-implementation. Their `tabId: -1` values deliberately block reads until replaced
-with verified `gid` values. The reader never selects the first available tab.
-Confirm the required header strings from each live header row before use.
+`SHEET_SOURCES` contains the spreadsheet and tab IDs from the client notes.
+All four sources use the `Submission Date` header. The separate MOR referral
+`Date` column and its unlabeled first column are not used.
 
-| Source | Date header status |
-| --- | --- |
-| `lor-inventory` | Pending live verification; left empty |
-| `mor-inventory` | Pending live verification; left empty |
-| `lor-referral` | Pending live verification; left empty |
-| `mor-referral` | Named `Date` column from the ticket; meaning still needs confirmation |
-
-The unlabeled first MOR referral column is ignored and is never substituted for
-`Date`. Dates are returned as displayed strings; date parsing and reporting
-period decisions belong to the later normalization ticket.
-
-Set `REFERRAL_CANCELLATION_YELLOW` in `lib/sheets/sources.ts` only after checking
-the effective background on the **Submission ID cell of a known cancelled
-referral**. It is currently `null`, so referral reads stop with a clear error
-until verified. The fictional samples use `#ffff00`; that is a test fixture,
-not a claim about the live cancellation color. Effective styles, theme colors
-and legacy RGB fills are supported, and cancelled records remain in the result.
+The referral cancellation color is configured as `#ffff00` and checked against
+the effective background of the Submission ID cell only. Effective styles,
+theme colors and legacy RGB fills are supported; cancelled rows remain in the
+result. Confirm the configured color against a real cancelled referral with
+`npm run inspect:sheets -- --all`.
 
 Submission IDs must be plain-text digit strings. Numeric cells, formulas,
 scientific notation and already-rounded IDs are rejected with a row number;
@@ -233,10 +220,9 @@ failed requests reject the source without returning partial results. A bounded
 read checks duplicates only within its selected rows. Reads are paged, not an
 atomic snapshot; avoid editing/reordering the sheet during a read.
 
-Offline tests use explicitly fictional API responses for all four source kinds,
-including blank cells, large IDs, cancellation fills, paging, auth and safe CLI
-output. **All four live Sheets, their date columns and a real cancellation fill
-still require verification when service-account access becomes available.**
+Offline tests use fictional API responses for all four source kinds, including
+blank cells, large IDs, cancellation fills, paging, auth and safe CLI output.
+The live inspection prints only source keys and active/cancelled counts.
 
 ## Import Jotform submissions
 
@@ -446,4 +432,3 @@ INTEGRATION_DATABASE_URL=postgresql://... npm run test:save:submission:integrati
 The integration test uses the generated Prisma client, writes one uniquely tagged
 submission, verifies it through Prisma reads, tests duplicate skip and invalid
 item-code rejection, then deletes only its own test rows.
-

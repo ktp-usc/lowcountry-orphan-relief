@@ -14,22 +14,60 @@ const text = (value) => ({ userEnteredValue: { stringValue: value }, effectiveVa
 const response = (value, status = 200) => new Response(JSON.stringify(value), { status });
 const copy = (value) => structuredClone(value);
 
+function addMappedHeaders(data) {
+  const mapping = modules.mappings.SHEET_MAPPINGS.find(({ key }) => key === data.source.key);
+  const headerRow = data.headerResponse.sheets[0].data[0].rowData[0];
+  const existingHeaders = new Set(headerRow.values.map((cell) => cell.effectiveValue?.stringValue).filter(Boolean));
+  const missingHeaders = Object.values(mapping.answerHeaders).filter((header) => !existingHeaders.has(header));
+  const missingPrivateHeaders = ["Name", "Email", "Notes"].filter((header) => !existingHeaders.has(header));
+  const appendedHeaders = [...missingHeaders, ...missingPrivateHeaders];
+  headerRow.values.push(...appendedHeaders.map(text));
+  data.headerResponse.sheets[0].properties.gridProperties.columnCount += appendedHeaders.length;
+  const dataGrid = data.dataResponse.sheets[0].data[0];
+  dataGrid.rowData = dataGrid.rowData.map((row) => ({ ...row, values: [...(row.values ?? []), ...appendedHeaders.map(() => text(""))] }));
+  data.dataResponse.sheets[0].properties.gridProperties.columnCount += appendedHeaders.length;
+  return data;
+}
+
+function filterResponse(data, filters, header) {
+  const result = copy(header ? data.headerResponse : data.dataResponse);
+  const sourceGrid = result.sheets[0].data[0];
+  if (!sourceGrid) return result;
+  const sourceStartRow = sourceGrid.startRow ?? 0;
+  const sourceStartColumn = sourceGrid.startColumn ?? 0;
+  const sourceEndColumn = sourceStartColumn + Math.max(0, ...sourceGrid.rowData.map((row) => row?.values?.length ?? 0));
+  result.sheets[0].data = filters.map((filter) => {
+    const startColumn = Math.max(filter.startColumnIndex ?? 0, sourceStartColumn);
+    const endColumn = Math.min(filter.endColumnIndex ?? Infinity, sourceEndColumn);
+    const startRow = filter.startRowIndex === 0 && sourceGrid.startRow !== undefined ? sourceGrid.startRow : filter.startRowIndex;
+    const rowStart = Math.max(0, filter.startRowIndex - sourceStartRow);
+    const rowEnd = Math.max(rowStart, filter.endRowIndex - sourceStartRow);
+    const sourceRows = filter.startRowIndex === 0 && sourceGrid.startRow !== undefined
+      ? sourceGrid.rowData.slice(0, 1)
+      : sourceGrid.rowData.slice(rowStart, rowEnd);
+    return {
+      startRow,
+      startColumn,
+      rowData: sourceRows.map((row) => row && ({
+        ...row,
+        values: row.values?.slice(startColumn - sourceStartColumn, endColumn - sourceStartColumn),
+      })),
+    };
+  });
+  return result;
+}
+
 function harness(fixture = fixtures[0], change = () => {}, overrides = {}) {
-  const data = copy(fixture), requests = [];
+  const data = addMappedHeaders(copy(fixture)), requests = [];
   change(data);
   const request = async (url, init) => {
-    const parsed = new URL(url), body = JSON.parse(init.body), range = body.dataFilters[0].gridRange;
-    requests.push({ url: parsed, init, range });
+    const parsed = new URL(url), body = JSON.parse(init.body), filters = body.dataFilters.map(({ gridRange }) => gridRange), range = filters[0];
+    requests.push({ url: parsed, init, range, filters });
     assert.equal(parsed.origin, "https://sheets.googleapis.com");
-    assert.equal(range.sheetId, data.source.tabId);
+    assert.ok(filters.every((filter) => filter.sheetId === data.source.tabId));
     assert.equal(init.headers.Authorization, "Bearer FICTIONAL_TOKEN");
     assert.equal(init.redirect, "error"); assert.equal(init.cache, "no-store");
-    const result = copy(range.startRowIndex === 0 ? data.headerResponse : data.dataResponse);
-    if (range.startRowIndex > 0) {
-      const grid = result.sheets[0].data[0];
-      grid.rowData = grid.rowData.slice(range.startRowIndex - 1, range.endRowIndex - 1);
-      grid.startRow = range.startRowIndex;
-    }
+    const result = filterResponse(data, filters, range.startRowIndex === 0);
     // Returning an unrelated first tab must never change which tab is read.
     result.sheets.unshift({ properties: { sheetId: 9999, gridProperties: { rowCount: 1, columnCount: 1 } }, data: [] });
     return response(result);
@@ -40,14 +78,22 @@ function harness(fixture = fixtures[0], change = () => {}, overrides = {}) {
   return { data, requests, read: (options) => read(data.source, options), reader: read };
 }
 
-test("the four client-note spreadsheet/form/location combinations are preserved without inventing tab IDs", () => {
+test("the four client-note sheet and tab IDs, form mappings, date headers and cancellation color are configured", () => {
   assert.equal(modules.sources.SHEET_SOURCES.length, 4);
+  const expected = [
+    ["1wBOD_fPH7oei5zEfktdFt_-OCZGgsO9eqWCjmbMh-2E", 1993480790],
+    ["1dGDtxcFvryt0zE-6K9pVI0ZXCYQOwu-RALePOvATrF0", 51238458],
+    ["1su1FCelCAoNnf5auudF_SmU30wLesNFIrmK7dZ-itIg", 1761833122],
+    ["16UsDpGbgJTIOXB9czKf03tMnIohDIeoIrLFXc4lGLns", 493112246],
+  ];
   for (const [index, source] of modules.sources.SHEET_SOURCES.entries()) {
-    const expected = fixtures[index].source;
-    for (const field of ["key", "spreadsheetId", "jotformFormId", "location", "sourceType"]) assert.equal(source[field], expected[field]);
-    assert.equal(source.tabId, -1);
+    const fixtureSource = fixtures[index].source;
+    for (const field of ["key", "jotformFormId", "location", "sourceType"]) assert.equal(source[field], fixtureSource[field]);
+    assert.equal(source.spreadsheetId, expected[index][0]);
+    assert.equal(source.tabId, expected[index][1]);
+    assert.equal(source.submissionDateHeader, "Submission Date");
   }
-  assert.equal(modules.sources.REFERRAL_CANCELLATION_YELLOW, null);
+  assert.equal(modules.sources.REFERRAL_CANCELLATION_YELLOW, "#ffff00");
 });
 
 for (const fixture of fixtures) {
@@ -57,9 +103,25 @@ for (const fixture of fixtures) {
     assert.deepEqual(result.rows.map((row) => row.rowNumber), [2, 4]);
     assert.ok(result.rows[0].values[fixture.source.submissionIdHeader].startsWith("0067"));
     assert.ok(result.rows.every((row) => Object.values(row.values).every((value) => typeof value === "string")));
+    const mapping = modules.mappings.SHEET_MAPPINGS.find(({ key }) => key === fixture.source.key);
+    const requiredHeaders = new Set(["Submission ID", "Submission Date", ...Object.values(mapping.answerHeaders)]);
+    assert.deepEqual(new Set(Object.keys(result.rows[0].values)), requiredHeaders);
+    for (const header of ["Fictional private field", "Name", "Email", "Notes"]) {
+      assert.equal(Object.hasOwn(result.rows[0].values, header), false);
+    }
+    assert.equal(Object.hasOwn(result.rows[0].values, "Male Shoes Type"), mapping.sourceType === "REFERRAL");
+    assert.equal(Object.hasOwn(result.rows[0].values, "Female Shoes Type"), mapping.sourceType === "REFERRAL");
     assert.deepEqual(result.rows.map((row) => row.cancelled), fixture.source.sourceType === "REFERRAL" ? [false, true] : [false, false]);
     assert.equal(h.requests.length, 2);
     assert.equal(h.requests[0].range.startRowIndex, 0); assert.equal(h.requests[0].range.endRowIndex, 1);
+    const requestedHeaders = h.requests[1].filters.flatMap((filter) => {
+      const headers = h.data.headerResponse.sheets[0].data[0].rowData[0].values;
+      return headers.slice(filter.startColumnIndex, filter.endColumnIndex).map((cell) => cell.effectiveValue.stringValue);
+    });
+    assert.deepEqual(new Set(requestedHeaders), requiredHeaders);
+    for (const header of ["Fictional private field", "Name", "Email", "Notes"]) {
+      assert.equal(requestedHeaders.includes(header), false);
+    }
     if (fixture.source.sourceType === "INVENTORY") {
       assert.equal(result.rows[0].values["Pull-Ups"], "");
       assert.equal(result.rows[0].values.Wipes, "3");
@@ -69,9 +131,9 @@ for (const fixture of fixtures) {
   });
 }
 
-test("MOR referral uses the named Date column and does not substitute the unlabeled first column", async () => {
+test("MOR referral uses Submission Date and does not substitute the unlabeled first column", async () => {
   const h = harness(fixtures[3]), result = await h.read();
-  assert.equal(result.rows[0].values.Date, "11/10/2026");
+  assert.equal(result.rows[0].values["Submission Date"], "11/10/2026");
   assert.equal(Object.hasOwn(result.rows[0].values, ""), false);
   assert.equal(JSON.stringify(result).includes("UNLABELED_TIMESTAMP"), false);
 });
@@ -111,9 +173,13 @@ for (const name of ["Submission ID", "Submission Date"]) {
   });
 }
 
-test("missing named MOR Date fails even when its unlabeled first column contains timestamps", async () => {
-  const h = harness(fixtures[3], (d) => { d.headerResponse.sheets[0].data[0].rowData[0].values[1] = {}; });
-  await assert.rejects(h.read(), /Missing required header: Date/);
+test("missing MOR Submission Date fails even when its unlabeled first column contains timestamps", async () => {
+  const h = harness(fixtures[3], (d) => {
+    const headers = d.headerResponse.sheets[0].data[0].rowData[0].values;
+    const index = headers.findIndex((cell) => cell.effectiveValue?.stringValue === "Submission Date");
+    headers[index] = {};
+  });
+  await assert.rejects(h.read(), /Missing required header: Submission Date/);
 });
 
 test("other duplicate headers fail instead of silently losing one of their values", async () => {
@@ -178,7 +244,7 @@ test("unknown theme colors fail instead of quietly treating a possible cancellat
   await assert.rejects(h.read(), /Cannot resolve the Submission ID background color at row 4/);
 });
 
-test("unverified source metadata and cancellation color stop before a network request", async () => {
+test("invalid source metadata and missing cancellation color stop before a network request", async () => {
   const h = harness();
   await assert.rejects(h.reader({ ...fixtures[0].source, tabId: -1 }), /verified tabId/);
   await assert.rejects(h.reader({ ...fixtures[0].source, submissionDateHeader: "" }), /verified submission ID and date headers/);
@@ -231,7 +297,7 @@ test("honors GridData startColumn when leading blank columns are omitted", async
       grid.rowData = grid.rowData.map((row) => row.values ? { values: row.values.slice(1) } : row);
     }
   });
-  assert.equal((await h.read()).rows[0].values.Date, "11/10/2026");
+  assert.equal((await h.read()).rows[0].values["Submission Date"], "11/10/2026");
 });
 
 test("cell errors expose only row/column metadata", async () => {
@@ -265,7 +331,7 @@ test("Google failures report status/timeouts without response bodies or credenti
 const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
 const credential = (extra = {}) => JSON.stringify({ type: "service_account", client_email: "fictional@project.iam.gserviceaccount.com", private_key: privateKey.export({ type: "pkcs8", format: "pem" }), token_uri: "https://oauth2.googleapis.com/token", ...extra });
 
-test("real auth path signs a valid readonly-scope JWT and caches the Google access token", async () => {
+test("real auth path signs a valid configured-scope JWT and caches the Google access token", async () => {
   const requests = [];
   const provider = modules.auth.createTokenProvider(async (url, init) => {
     requests.push({ url, init });
@@ -275,7 +341,7 @@ test("real auth path signs a valid readonly-scope JWT and caches the Google acce
     assert.equal(params.get("grant_type"), "urn:ietf:params:oauth:grant-type:jwt-bearer");
     assert.deepEqual(JSON.parse(Buffer.from(header, "base64url")), { alg: "RS256", typ: "JWT" });
     const claims = JSON.parse(Buffer.from(payload, "base64url"));
-    assert.equal(claims.scope, "https://www.googleapis.com/auth/spreadsheets.readonly");
+    assert.equal(claims.scope, "https://www.googleapis.com/auth/spreadsheets");
     assert.equal(claims.aud, url); assert.equal(claims.exp - claims.iat, 3600); assert.equal(claims.sub, undefined);
     assert.equal(verify("RSA-SHA256", Buffer.from(`${header}.${payload}`), publicKey, Buffer.from(signature, "base64url")), true);
     return response({ access_token: "FICTIONAL_TOKEN", token_type: "Bearer", expires_in: 3600 });
@@ -312,6 +378,7 @@ test("invalid access-token responses are rejected without exposing their content
 
 test("public readSheet uses env credentials, the real auth flow and a shared token for inventory sources", async (t) => {
   process.env.GOOGLE_SERVICE_ACCOUNT_JSON = credential();
+  const samples = fixtures.slice(0, 2).map((fixture) => addMappedHeaders(copy(fixture)));
   let tokenRequests = 0, gridRequests = 0;
   t.mock.method(globalThis, "fetch", async (url, init) => {
     const parsed = new URL(url);
@@ -322,10 +389,10 @@ test("public readSheet uses env credentials, the real auth flow and a shared tok
     gridRequests++;
     assert.equal(parsed.hostname, "sheets.googleapis.com");
     assert.equal(init.headers.Authorization, "Bearer PUBLIC_PATH_FICTIONAL_TOKEN");
-    const range = JSON.parse(init.body).dataFilters[0].gridRange;
-    const fixture = fixtures.find((f) => f.source.tabId === range.sheetId);
-    const body = copy(range.startRowIndex === 0 ? fixture.headerResponse : fixture.dataResponse);
-    if (range.startRowIndex > 0) body.sheets[0].data[0].rowData = body.sheets[0].data[0].rowData.slice(0, range.endRowIndex - 1);
+    const filters = JSON.parse(init.body).dataFilters.map(({ gridRange }) => gridRange);
+    const range = filters[0];
+    const fixture = samples.find((f) => f.source.tabId === range.sheetId);
+    const body = filterResponse(fixture, filters, range.startRowIndex === 0);
     return response(body);
   });
   for (const fixture of fixtures.slice(0, 2)) {
@@ -349,7 +416,8 @@ test("request and body timeouts are reported safely", async (t) => {
 test("reader never prints returned answers, tokens or credential material", async (t) => {
   for (const method of ["log", "warn", "error", "info", "debug"]) t.mock.method(console, method, () => assert.fail("Unexpected console output"));
   const result = await harness().read();
-  assert.equal(result.rows[0].values["Fictional private field"], "PRIVATE_FICTIONAL_ANSWER");
+  assert.equal(Object.hasOwn(result.rows[0].values, "Fictional private field"), false);
+  assert.equal(JSON.stringify(result).includes("PRIVATE_FICTIONAL_ANSWER"), false);
   await assert.rejects(harness(undefined, undefined, { request: async () => response({ secret: "PRIVATE_FICTIONAL_ANSWER" }, 403) }).read(), /HTTP 403/);
 });
 
@@ -387,8 +455,8 @@ test("CLI defaults to a small sample, supports an explicit full read and display
 });
 
 test("reader imports do not execute a database, normalizer or Jotform API dependency", () => {
-  for (const name of ["read-sheet.ts", "auth.ts", "sources.ts"]) {
+  for (const name of ["read-sheet.ts", "auth.ts", "sources.ts", "mappings.ts"]) {
     const source = readFileSync(new URL(`../lib/sheets/${name}`, import.meta.url), "utf8");
-    assert.equal(/from\s+["'][^"']*(?:prisma|jotform|save-submission|normalize)[^"']*["']/.test(source), false);
+    assert.equal(/from\s+["'][^"']*(?:prisma|fetch-submissions|import-submissions|save-submission|normalize)[^"']*["']/.test(source), false);
   }
 });

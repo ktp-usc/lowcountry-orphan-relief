@@ -1,5 +1,6 @@
 import { createTokenProvider } from "./auth.js";
 import { isRecord, requestJson, SheetReadError } from "./errors.js";
+import { SHEET_MAPPINGS } from "./mappings.js";
 import { REFERRAL_CANCELLATION_YELLOW } from "./sources.js";
 import type { SheetSource, SheetRow, ReadSheetOptions, ReadSheetResult } from "./types.js";
 
@@ -127,11 +128,23 @@ export function createSheetReader(overrides: Partial<ReaderDependencies> = {}) {
   const yellow = overrides.cancellationYellow === undefined ? REFERRAL_CANCELLATION_YELLOW : overrides.cancellationYellow;
   return async (source: SheetSource, options: ReadSheetOptions = {}): Promise<ReadSheetResult> => {
     validate(source, options, yellow);
+    const mapping = SHEET_MAPPINGS.find((candidate) => candidate.key === source.key);
+    if (!mapping || mapping.jotformFormId !== source.jotformFormId
+      || mapping.location !== source.location || mapping.sourceType !== source.sourceType
+      || mapping.submissionIdHeader !== source.submissionIdHeader
+      || mapping.submissionDateHeader !== source.submissionDateHeader) {
+      throw new SheetReadError("No matching calculation mapping is configured for this source.");
+    }
     const accessToken = await token(process.env.GOOGLE_SERVICE_ACCOUNT_JSON ?? "");
-    const get = async (start: number, end: number) => {
+    const get = async (start: number, end: number, columnRanges?: { startColumnIndex: number; endColumnIndex: number }[]) => {
       const body = await requestJson(request, `https://sheets.googleapis.com/v4/spreadsheets/${source.spreadsheetId}:getByDataFilter?fields=${encodeURIComponent(fields)}`, {
         method: "POST", headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ dataFilters: [{ gridRange: { sheetId: source.tabId, startRowIndex: start, endRowIndex: end } }], includeGridData: true }),
+        body: JSON.stringify({
+          dataFilters: (columnRanges ?? [undefined]).map((columns) => ({
+            gridRange: { sheetId: source.tabId, startRowIndex: start, endRowIndex: end, ...columns },
+          })),
+          includeGridData: true,
+        }),
       }, "Google Sheets read");
       return parseGrid(body, source, start, end);
     };
@@ -151,18 +164,30 @@ export function createSheetReader(overrides: Partial<ReaderDependencies> = {}) {
       if (!column) throw new SheetReadError(`Missing required header: ${header}.`);
       return column;
     };
+    const selected = new Map<number, string>();
+    for (const header of [source.submissionIdHeader, source.submissionDateHeader, ...Object.values(mapping.answerHeaders)]) {
+      const column = required(header);
+      selected.set(column.index, column.header);
+    }
+    const selectedColumns = [...selected].sort(([a], [b]) => a - b);
+    const selectedIndexes = selectedColumns.map(([index]) => index);
+    const columnRanges: { startColumnIndex: number; endColumnIndex: number }[] = [];
+    for (const index of selectedIndexes) {
+      const last = columnRanges.at(-1);
+      if (last && last.endColumnIndex === index) last.endColumnIndex++;
+      else columnRanges.push({ startColumnIndex: index, endColumnIndex: index + 1 });
+    }
     const idColumn = required(source.submissionIdHeader);
-    required(source.submissionDateHeader);
     // The bound applies to physical rows after the header. Empty rows do not
     // trigger replacement reads beyond the requested sample.
     const end = Math.min(headerGrid.rowCount, options.limit === undefined ? headerGrid.rowCount : options.limit + 1);
     const rows: SheetRow[] = [], seenIds = new Map<string, number>();
     for (let start = 1; start < end; start += pageSize) {
-      const grid = await get(start, Math.min(start + pageSize, end));
+      const grid = await get(start, Math.min(start + pageSize, end), columnRanges);
       if (grid.rowCount !== headerGrid.rowCount || grid.columnCount !== headerGrid.columnCount) throw new SheetReadError("Sheet dimensions changed during reading; retry the read.");
       for (const [rowIndex, cells] of [...grid.rows].sort(([a], [b]) => a - b)) {
         const rowNumber = rowIndex + 1;
-        if (![...cells].some(([column, cell]) => cellText(cell, rowNumber, column).trim() !== "")) continue;
+        if (selectedIndexes.every((column) => cellText(cells.get(column), rowNumber, column).trim() === "")) continue;
         const idCell = cells.get(idColumn.index);
         const entered = idCell?.userEnteredValue, effective = idCell?.effectiveValue;
         if (!isRecord(entered) || typeof entered.stringValue !== "string" || !/^\d+$/.test(entered.stringValue)
@@ -172,7 +197,9 @@ export function createSheetReader(overrides: Partial<ReaderDependencies> = {}) {
         const id = entered.stringValue, previous = seenIds.get(id);
         if (previous !== undefined) throw new SheetReadError(`Duplicate submission ID at rows ${previous} and ${rowNumber}.`);
         seenIds.set(id, rowNumber);
-        const values = Object.fromEntries(columns.map(({ header, index }) => [header, cellText(cells.get(index), rowNumber, index)]));
+        const values = Object.fromEntries(selectedColumns.map(([index, header]) => [
+          header, cellText(cells.get(index), rowNumber, index),
+        ]));
         rows.push({ rowNumber, values, cancelled: source.sourceType === "REFERRAL" && background(idCell, grid.theme.size ? grid.theme : headerGrid.theme, rowNumber) === yellow?.toLowerCase() });
       }
     }

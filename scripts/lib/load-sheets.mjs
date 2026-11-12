@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 /** Compile the actual reader and CLI for offline tests on supported Node versions. */
 export async function loadSheets() {
   const directory = await mkdtemp(join(tmpdir(), "sheets-reader-tests-"));
-  const paths = ["lib/sheets/types.ts", "lib/sheets/sources.ts", "lib/sheets/errors.ts", "lib/sheets/auth.ts", "lib/sheets/read-sheet.ts", "scripts/inspect-sheets.ts"];
+  const paths = ["lib/sheets/types.ts", "lib/jotform/forms.ts", "lib/sheets/sources.ts", "lib/sheets/mappings.ts", "lib/sheets/errors.ts", "lib/sheets/auth.ts", "lib/sheets/read-sheet.ts", "scripts/inspect-sheets.ts"];
   let compile;
   if (process.features.typescript) {
     const { stripTypeScriptTypes } = await import("node:module");
@@ -25,6 +25,7 @@ export async function loadSheets() {
     const load = (path) => import(pathToFileURL(join(directory, path)).href);
     return {
       reader: await load("lib/sheets/read-sheet.js"), sources: await load("lib/sheets/sources.js"),
+      mappings: await load("lib/sheets/mappings.js"),
       auth: await load("lib/sheets/auth.js"), errors: await load("lib/sheets/errors.js"),
       cli: await load("scripts/inspect-sheets.js"), close: () => rm(directory, { recursive: true, force: true }),
     };
