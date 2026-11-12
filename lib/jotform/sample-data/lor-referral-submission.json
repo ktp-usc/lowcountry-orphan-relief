@@ -13,6 +13,7 @@
     "81": { "type": "control_radio", "text": "Wipes", "name": "wipes", "answer": "Yes" },
     "85": { "type": "control_radio", "text": "Toiletries", "name": "toiletries", "answer": "Yes" },
     "147": { "type": "control_radio", "text": "Socks?", "name": "socks", "answer": "Yes" },
+    "141": { "type": "control_radio", "text": "Male Shoes Type", "name": "maleShoesType", "answer": "Child/Baby" },
     "158": { "type": "control_dropdown", "text": "Childs Age", "name": "childAge", "answer": "7 years" },
     "159": { "type": "control_radio", "text": "Diapers or Pullups?", "name": "diapersOrPullups", "answer": "None" },
     "83": { "type": "control_radio", "text": "School", "name": "school", "answer": "Elementary School Bookbag & Supplies" },

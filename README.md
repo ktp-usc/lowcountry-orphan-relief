@@ -134,6 +134,34 @@ This test uses fixtures shaped like `lib/jotform/sample-data/*.json` and asserts
 - Remove or hide names, locations, ages, and other personal identifiers before sharing output in Google Docs
 - Keep the approved list narrow and conservative until the team confirms the exact safe columns
 
+## Offline Sheet normalization
+
+`npm run verify:sheet-imports` reads the four explicitly configured CSVs in
+`imports/` and writes per-file `-normalized.csv` and `-errors.csv` reports in
+`exports/`. Both directories are ignored by Git. This is a local review tool:
+it does not access Sheets, Jotform, or the database. Row validation errors do
+not stop subsequent rows; file and unexpected failures produce a nonzero exit.
+
+`lib/sheets/types.ts` defines the local ordered-header/ordered-value contract;
+`lib/sheets/sources.ts` maps filenames, form IDs and exact headers to the
+existing normalizers. This contract can be reconciled with the eventual shared
+Sheet contract without changing the Jotform business rules. Dates use the
+existing America/New_York convention; timestamps with a single-digit hour are
+accepted. The Midlands referral timestamp is at index 0: it has a single-space
+header and matches the first-column placement of the other exports. Blank or
+ambiguous timestamps are rejected.
+
+The current files have no confirmed cancellation column or referral age. A
+source can configure cancellation values; without one, rows are treated as
+active. Toiletry requests and child/baby pajama requests needing an infant
+sleeper decision are rejected when age is unavailable. Sex is derived only
+from populated selectors for requested referral groups; contradictory or
+missing classifications are rejected. Normalized output has one row per
+activity, or one metadata-only row for an active submission with no activities.
+Errors include only safe source identifiers and validation details, not answers.
+
+Run the fictional offline tests with `npm run test:sheets`.
+
 ## Jotform submissions
 
 Set `JOTFORM_API_KEY` in the project's ignored `.env` file to a key that can read
@@ -374,4 +402,3 @@ INTEGRATION_DATABASE_URL=postgresql://... npm run test:save:submission:integrati
 The integration test uses the generated Prisma client, writes one uniquely tagged
 submission, verifies it through Prisma reads, tests duplicate skip and invalid
 item-code rejection, then deletes only its own test rows.
-

@@ -31,7 +31,9 @@
     "test:normalize:inventory": "node --test tests/normalize-inventory.test.mjs",
     "test:save:submission": "node --test tests/save-submission.test.mjs",
     "test:save:submission:integration": "node --test tests/save-submission.integration.test.mjs",
-    "import:starting-inventory": "node --conditions=react-server --import tsx scripts/import-starting-inventory.ts"
+    "import:starting-inventory": "node --conditions=react-server --import tsx scripts/import-starting-inventory.ts",
+    "verify:sheet-imports": "node --no-warnings --loader ./scripts/lib/sheet-ts-loader.mjs scripts/verify-sheet-imports.ts",
+    "test:sheets": "node --no-warnings --loader ./scripts/lib/sheet-ts-loader.mjs --test tests/normalize-sheet-row.test.mjs tests/sheet-csv.test.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",

@@ -39,6 +39,7 @@ function quantityCategory(value: unknown): string {
 const clothingTypeFields: Readonly<Record<string, readonly string[]>> = {
   "88": ["90", "93"], "103": ["104", "105"], "110": ["111", "112"],
   "117": ["119"], "126": ["127", "128"], "133": ["134", "135"], "140": ["141", "142"],
+  "147": ["141", "142"], "169": ["90", "93"], "171": ["104", "105"],
 };
 
 function recognizedChoice(raw: JotformSubmission, id: string, allowed: readonly string[]) {
@@ -83,7 +84,7 @@ export function isConfirmedSourceIssue(raw: JotformSubmission, error: ImportSumm
   const quantityField = /invalid quantity in field (\d+)/i.exec(error.message)?.[1];
   if (form.sourceType === "INVENTORY" && quantityField) {
     const field = answerField(raw, quantityField);
-    return field.type === "control_number" && ["negative", "fractional"].includes(quantityCategory(field.answer));
+    return field.type === "control_number" && quantityCategory(field.answer) === "fractional";
   }
   const clothingField = /missing clothing classification for field (\d+)/i.exec(error.message)?.[1];
   if (form.sourceType !== "REFERRAL" || !clothingField || !Object.hasOwn(clothingTypeFields, clothingField)) return false;
