@@ -3,6 +3,7 @@
   "include": [
     "lib/sheets/**/*.ts",
     "scripts/inspect-sheets.ts",
+    "scripts/sync-sheets.ts",
     "lib/inventory/save-submission.ts",
     "generated/prisma/**/*.ts"
   ]
