@@ -1,12 +1,12 @@
 import { JOTFORM_FORMS } from "../jotform/forms.js";
 import { normalizeInventorySubmission } from "../jotform/normalize-inventory.js";
 import { normalizeReferralSubmission, parseJotformSubmissionDate } from "../jotform/normalize-referral.js";
+import { SHEET_MAPPINGS } from "./mappings.js";
 import type {
   SheetSource,
   SheetRow,
   NormalizedSheetRecord,
 } from "./types.js";
-import type { ColumnReference } from "./types.js";
 
 export class SheetValidationError extends Error {
   constructor(readonly code: string, message: string) {
@@ -15,47 +15,21 @@ export class SheetValidationError extends Error {
   }
 }
 
-function readColumn(row: SheetRow, column: ColumnReference): string {
-  let index: number;
-  if ("header" in column) {
-    index = row.headers.indexOf(column.header);
-    if (index < 0 || row.headers.lastIndexOf(column.header) !== index) {
-      throw new SheetValidationError("COLUMN", `Missing or ambiguous column: ${column.header}.`);
-    }
-  } else {
-    index = column.index;
-    if (!Number.isInteger(index) || index < 0 || row.headers[index] !== column.expectedHeader) {
-      throw new SheetValidationError("COLUMN", "Configured indexed column does not match the source layout.");
-    }
+function readValue(row: SheetRow, header: string): string {
+  if (!Object.hasOwn(row.values, header) || typeof row.values[header] !== "string") {
+    throw new SheetValidationError("COLUMN", `Missing or invalid column: ${header}.`);
   }
-  if (typeof row.values[index] !== "string") {
-    throw new SheetValidationError("COLUMN", "Row has a missing cell.");
-  }
-  return row.values[index];
+  return row.values[header];
 }
 
-const genderSelectors = [
-  ["88", "90", "93"], ["103", "104", "105"], ["110", "111", "112"],
-  ["126", "127", "128"], ["133", "134", "135"], ["140", "141", "142"],
-  ["147", "141", "142"], ["169", "90", "93"], ["171", "104", "105"],
-] as const;
-
-function referralAnswers(source: SheetSource, row: SheetRow): Record<string, { answer: string }> {
+function mappedAnswers(
+  answerHeaders: Readonly<Record<string, string>>,
+  row: SheetRow,
+): Record<string, { answer: string }> {
   const answers: Record<string, { answer: string }> = {};
-  for (const [id, reference] of Object.entries(source.answers)) {
-    answers[id] = { answer: readColumn(row, reference) };
+  for (const [id, header] of Object.entries(answerHeaders)) {
+    answers[id] = { answer: readValue(row, header) };
   }
-  const genders = new Set<string>();
-  for (const [request, male, female] of genderSelectors) {
-    if (answers[request]?.answer.trim().toLowerCase() !== "yes") continue;
-    for (const [id, gender] of [[male, "Male"], [female, "Female"]]) {
-      if (answers[id]?.answer.trim()) genders.add(gender);
-    }
-  }
-  if (genders.size > 1) {
-    throw new SheetValidationError("CLASSIFICATION", "Conflicting referral classification selectors.");
-  }
-  answers["17"] = { answer: [...genders][0] ?? "" };
   return answers;
 }
 
@@ -65,19 +39,19 @@ export function normalizeSheetRow(source: SheetSource, row: SheetRow): Normalize
   if (!form || form.location !== source.location || form.sourceType !== source.sourceType) {
     throw new SheetValidationError("SOURCE", "Invalid or unsupported source form configuration.");
   }
-  const id = readColumn(row, source.submissionId).trim();
+  const mapping = SHEET_MAPPINGS.find((entry) => entry.key === source.key
+    && entry.jotformFormId === formId
+    && entry.location === source.location
+    && entry.sourceType === source.sourceType
+    && entry.submissionIdHeader === source.submissionIdHeader
+    && entry.submissionDateHeader === source.submissionDateHeader);
+  if (!mapping) throw new SheetValidationError("SOURCE", "Invalid or unsupported source mapping.");
+  const id = readValue(row, source.submissionIdHeader).trim();
   if (!/^\d+$/.test(id)) throw new SheetValidationError("SUBMISSION_ID", "Missing or invalid submission ID.");
-  if (source.cancellation) {
-    const status = readColumn(row, source.cancellation.column).trim().toLowerCase();
-    if (source.cancellation.cancelledValues.some((value) => value.trim().toLowerCase() === status)) {
-      return { kind: "cancelled", jotformFormId: formId, jotformSubmissionId: id };
-    }
-    if (source.cancellation.activeValues && !source.cancellation.activeValues.some((value) => value.trim().toLowerCase() === status)) {
-      throw new SheetValidationError("STATUS", "Invalid cancellation status.");
-    }
+  if (row.cancelled) {
+    return { kind: "cancelled", jotformFormId: formId, jotformSubmissionId: id };
   }
-  if (!source.submissionDate) throw new SheetValidationError("DATE", "Submission date column unresolved.");
-  const dateText = readColumn(row, source.submissionDate).trim();
+  const dateText = readValue(row, source.submissionDateHeader).trim();
   const timestamp = /^(\d{4}-\d{2}-\d{2}) (\d{1,2}:\d{2}:\d{2})$/.exec(dateText);
   if (!timestamp) throw new SheetValidationError("DATE", "Missing or invalid submission date.");
   let date: Date;
@@ -88,8 +62,7 @@ export function normalizeSheetRow(source: SheetSource, row: SheetRow): Normalize
   }
 
   if (source.sourceType === "INVENTORY") {
-    const answers: Record<string, { answer: string }> = {};
-    for (const [fieldId, reference] of Object.entries(source.answers)) answers[fieldId] = { answer: readColumn(row, reference) };
+    const answers = mappedAnswers(mapping.answerHeaders, row);
     try {
       return { kind: "active", input: normalizeInventorySubmission(formId, { id, created_at: date, answers }) };
     } catch (error) {
@@ -98,7 +71,7 @@ export function normalizeSheetRow(source: SheetSource, row: SheetRow): Normalize
       throw error;
     }
   }
-  const answers = referralAnswers(source, row);
+  const answers = mappedAnswers(mapping.answerHeaders, row);
   try {
     const input = normalizeReferralSubmission(formId, { id, form_id: formId, created_at: date.toISOString(), answers },
       { requireAgeForChildPajamas: true });

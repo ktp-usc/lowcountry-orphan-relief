@@ -1,7 +1,7 @@
 import { lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { SHEET_SOURCES } from "../lib/sheets/sources.js";
+import { SHEET_MAPPINGS } from "../lib/sheets/mappings.js";
 import { normalizeSheetRow, SheetValidationError } from "../lib/sheets/normalize-row.js";
 import { formatCsv, parseCsv } from "./lib/sheet-csv.mjs";
 
@@ -34,7 +34,7 @@ export async function verifySheetImports(projectRoot = root) {
   const outputDir = await realpath(exportPath);
   if (outputDir !== exportPath) throw new Error("Invalid exports directory.");
 
-  for (const source of SHEET_SOURCES) {
+  for (const source of SHEET_MAPPINGS) {
     const counts = { active: 0, cancelled: 0, rejected: 0 };
     try {
       const input = await safeFile(inputDir, source.fileName, true);
@@ -45,8 +45,10 @@ export async function verifySheetImports(projectRoot = root) {
       const normalized: (string | number)[][] = [normalizedHeader];
       const errors: (string | number)[][] = [errorHeader];
       for (const row of rows) {
+        const values = Object.fromEntries(headers.map((header, index) => [header, row.values[index]]));
+        const sheetRow = { rowNumber: row.rowNumber, values, cancelled: false };
         try {
-          const result = normalizeSheetRow(source, { headers, values: row.values, rowNumber: row.rowNumber });
+          const result = normalizeSheetRow(source, sheetRow);
           if (result.kind === "cancelled") {
             counts.cancelled++;
             normalized.push([source.fileName, row.rowNumber, result.kind, result.jotformFormId, result.jotformSubmissionId, "", "", "", "", "", ""]);
@@ -60,8 +62,8 @@ export async function verifySheetImports(projectRoot = root) {
           }
         } catch (error) {
           counts.rejected++;
-          const idIndex = headers.indexOf("Submission ID");
-          const value = idIndex >= 0 ? row.values[idIndex].trim() : "";
+          const value = typeof values[source.submissionIdHeader] === "string"
+            ? values[source.submissionIdHeader].trim() : "";
           const id = /^\d+$/.test(value) ? value : "";
           if (!(error instanceof SheetValidationError)) failed = true;
           errors.push([source.fileName, row.rowNumber, source.jotformFormId, id,

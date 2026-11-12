@@ -1,30 +1,67 @@
-import type { LocationValue, NormalizedInventoryResult, SourceTypeValue } from "../jotform/normalize-inventory.js";
-
-// Local Sheet ingestion contract; reconcile its structure with KAN-30 when available.
-export type ColumnReference = { readonly header: string } | { readonly index: number; readonly expectedHeader: string };
-
-export type SheetRow = {
-  readonly headers: readonly string[];
-  readonly values: readonly string[];
-  readonly rowNumber?: number;
-};
+import type { PrismaClient } from "../../generated/prisma/client.js";
+import type { SubmissionSaveInput } from "../inventory/save-submission.js";
 
 export type SheetSource = {
-  readonly key: string;
-  readonly fileName: string;
-  readonly jotformFormId: string;
-  readonly location: LocationValue;
-  readonly sourceType: SourceTypeValue;
-  readonly submissionId: ColumnReference;
-  readonly submissionDate: ColumnReference | null;
-  readonly cancellation: {
-    readonly column: ColumnReference;
-    readonly cancelledValues: readonly string[];
-    readonly activeValues?: readonly string[];
-  } | null;
-  readonly answers: Readonly<Record<string, ColumnReference>>;
+  key: string;
+  spreadsheetId: string;
+  tabId: number;
+  jotformFormId: string;
+  location: "LOWCOUNTRY" | "MIDLANDS";
+  sourceType: "INVENTORY" | "REFERRAL";
+  submissionIdHeader: string;
+  submissionDateHeader: string;
+};
+
+export type SheetRow = {
+  rowNumber: number;
+  values: Record<string, string>;
+  cancelled: boolean;
+};
+
+export type ReadSheetOptions = {
+  limit?: number;
+};
+
+export type ReadSheetResult = {
+  sourceKey: string;
+  rows: SheetRow[];
 };
 
 export type NormalizedSheetRecord =
-  | { kind: "active"; input: NormalizedInventoryResult }
-  | { kind: "cancelled"; jotformFormId: string; jotformSubmissionId: string };
+  | {
+      kind: "active";
+      input: SubmissionSaveInput;
+    }
+  | {
+      kind: "cancelled";
+      jotformFormId: string;
+      jotformSubmissionId: string;
+    };
+
+export type SyncDatabase = Pick<PrismaClient, "$transaction">;
+
+export type SyncSubmissionResult = {
+  status: "created" | "updated" | "unchanged" | "cancelled";
+};
+
+export type SyncSheetsOptions = {
+  limitPerSource?: number;
+};
+
+export type SyncSheetsSummary = {
+  created: number;
+  updated: number;
+  unchanged: number;
+  cancelled: number;
+  failed: number;
+  sourceErrors: {
+    sourceKey: string;
+    message: string;
+  }[];
+  rowErrors: {
+    sourceKey: string;
+    rowNumber: number;
+    submissionId?: string;
+    message: string;
+  }[];
+};
