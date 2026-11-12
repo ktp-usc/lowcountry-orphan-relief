@@ -95,7 +95,16 @@ export default function Home() {
         </h1>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
               <JotformLinksMenu />
-              <InventoryEditor year={selectedYear} location={selectedLocation} onSaved={() => queryClient.invalidateQueries({ queryKey: qk.dashboard(selectedYear, selectedLocation) })} />
+              <InventoryEditor year={selectedYear} location={selectedLocation} onSaved={(kind, scope) => {
+                if (kind === "valuations") {
+                  void Promise.all([
+                    queryClient.invalidateQueries({ queryKey: qk.dashboard(scope.year, "LOWCOUNTRY") }),
+                    queryClient.invalidateQueries({ queryKey: qk.dashboard(scope.year, "MIDLANDS") }),
+                  ]);
+                } else {
+                  void queryClient.invalidateQueries({ queryKey: qk.dashboard(scope.year, scope.location) });
+                }
+              }} />
               <SignOutButton />
           </div>
       </header>
