@@ -69,7 +69,7 @@ async function checkFictionalSubmissions(client: Client) {
         $transaction: async (callback: (transaction: typeof tx) => Promise<unknown>) => callback(tx),
       } as unknown as Parameters<typeof importSubmissions>[0];
       summary = await importSubmissions(scoped, { limitPerForm: 3 }, {
-        fetchSubmissions: async (id) => id === form.id ? [makeRaw(badId, "-1"), makeRaw(missingCodeId, "2"), makeRaw(goodId, "3")] : [],
+        fetchSubmissions: async (id) => id === form.id ? [makeRaw(badId, "1.5"), makeRaw(missingCodeId, "2"), makeRaw(goodId, "3")] : [],
         normalizeInventory: (id, raw) => {
           const result = normalizeInventorySubmission(id, raw as JotformSubmissionLike);
           if (raw.id === missingCodeId) result.inventoryActivities[0].itemCode = unknownCode;
