@@ -1,5 +1,6 @@
 export interface InventoryRow {
   itemName: string;
+  valuePerUnit: number | null;
   initialCount: number;
   initialValue: number | null;
   itemsSubtracted: number;
