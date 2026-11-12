@@ -10,6 +10,7 @@ import {
 export type InventoryRow = {
   item: string;
   initialCount: number;
+  valuePerUnit?: number | null;
   initialValue: number | null;
   itemsAdded: number;
   itemsSubtracted: number;
@@ -32,6 +33,7 @@ const formatValue = (value: number | null) =>
 
 const headings = [
   "Item",
+  "Unit valuation",
   "Initial count",
   "Initial value",
   "Quantity sub",
@@ -86,6 +88,10 @@ export default function InventoryTable({ rows }: InventoryTableProps) {
               >
                 <TableCell className="h-10 min-w-[250px] whitespace-normal px-3 py-0 text-sm font-medium text-foreground">
                   {row.item}
+                </TableCell>
+
+                <TableCell className={numberCell}>
+                  {formatValue(row.valuePerUnit ?? null)}
                 </TableCell>
 
                 <TableCell className={numberCell}>

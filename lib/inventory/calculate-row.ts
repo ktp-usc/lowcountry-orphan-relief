@@ -1,5 +1,6 @@
 export type InventoryRow = {
     itemName: string;
+    valuePerUnit: number | null;
     initialCount: number;
     initialValue: number | null;
     itemsSubtracted: number;
@@ -27,6 +28,7 @@ export function calculateRow({
 
     return {
         itemName,
+        valuePerUnit,
         initialCount,
         initialValue:
             valuePerUnit === null ? null : initialCount * valuePerUnit,
