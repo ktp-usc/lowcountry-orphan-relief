@@ -209,9 +209,27 @@ test("exact text IDs win over misleading display formatting", async () => {
   assert.equal((await h.read()).rows[0].values["Submission ID"], fixtures[0].dataResponse.sheets[0].data[0].rowData[0].values[6].userEnteredValue.stringValue);
 });
 
-test("duplicate IDs, including active/cancelled pairs, reject the read with row positions", async () => {
-  const h = harness(fixtures[2], (d) => { const rows = d.dataResponse.sheets[0].data[0].rowData; rows[2].values[6] = { ...copy(rows[0].values[6]), effectiveFormat: { backgroundColor: { red: 1, green: 1 } } }; });
-  await assert.rejects(h.read(), /Duplicate submission ID at rows 2 and 4/);
+test("duplicate IDs keep the first row and warn about later rows", async (t) => {
+  const warnings = [];
+  t.mock.method(console, "warn", (message) => warnings.push(message));
+
+  const h = harness(fixtures[2], (d) => {
+    const rows = d.dataResponse.sheets[0].data[0].rowData;
+    rows[2].values[6] = {
+      ...copy(rows[0].values[6]),
+      effectiveFormat: {
+        backgroundColor: { red: 1, green: 1 },
+      },
+    };
+  });
+
+  const result = await h.read();
+
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0].rowNumber, 2);
+  assert.equal(result.rows[0].cancelled, false);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /kept row 2, skipped row 4/);
 });
 
 test("cancellation checks the Submission ID cell only, not a yellow adjacent answer", async () => {
@@ -266,18 +284,33 @@ test("header-only and entirely empty sheets return no data or a clear missing-he
   const empty = harness(fixtures[0], (d) => { d.headerResponse.sheets[0].data = []; });
   await assert.rejects(empty.read(), /Missing required header/);
 });
+test("duplicates across pages keep the first row and warn", async (t) => {
+  const warnings = [];
+  t.mock.method(console, "warn", (message) => warnings.push(message));
 
-test("multiple pages preserve absolute row numbers and detect cross-page duplicate IDs", async () => {
   const h = harness(fixtures[0], (d) => {
     d.headerResponse.sheets[0].properties.gridProperties.rowCount = 503;
     d.dataResponse.sheets[0].properties.gridProperties.rowCount = 503;
+
     const blank = Array.from({ length: 502 }, () => ({}));
     const first = copy(d.dataResponse.sheets[0].data[0].rowData[0]);
-    blank[0] = first; blank[501] = copy(first);
+    blank[0] = first;
+    blank[501] = copy(first);
     d.dataResponse.sheets[0].data[0].rowData = blank;
   });
-  await assert.rejects(h.read(), /Duplicate submission ID at rows 2 and 503/);
-  assert.deepEqual(h.requests.map((r) => [r.range.startRowIndex, r.range.endRowIndex]), [[0, 1], [1, 501], [501, 503]]);
+
+  const result = await h.read();
+
+  assert.deepEqual(result.rows.map((row) => row.rowNumber), [2]);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /kept row 2, skipped row 503/);
+  assert.deepEqual(
+      h.requests.map((r) => [
+        r.range.startRowIndex,
+        r.range.endRowIndex,
+      ]),
+      [[0, 1], [1, 501], [501, 503]],
+  );
 });
 
 test("empty middle pages do not hide later data", async () => {
