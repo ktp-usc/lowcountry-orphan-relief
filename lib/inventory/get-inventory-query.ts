@@ -20,6 +20,7 @@ export async function queryInventoryRows(
   client: InventoryQueryClient,
   year: number,
   location: Location,
+  options?: { excludeItemCodes?: readonly string[] },
 ): Promise<InventoryCalculationInput[]> {
   if (!Number.isInteger(year) || year < 1900 || year > 9999) {
     throw new Error("Provide a reporting year between 1900 and 9999.");
@@ -31,6 +32,9 @@ export async function queryInventoryRows(
   const yearStart = new Date(Date.UTC(year, 0, 1));
   const nextYearStart = new Date(Date.UTC(year + 1, 0, 1));
   const items = await client.item.findMany({
+    ...(options?.excludeItemCodes?.length ? {
+      where: { code: { notIn: [...options.excludeItemCodes] } },
+    } : {}),
     select: {
       displayName: true,
       valuations: {

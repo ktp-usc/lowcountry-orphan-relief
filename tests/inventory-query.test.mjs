@@ -42,6 +42,7 @@ function clientFor(items) {
         calls.push(query);
         const valuationYear = query.where?.valuations?.some?.year;
         return items.filter((item) => valuationYear === undefined || item.valuations.some((v) => v.year === valuationYear))
+          .filter((item) => !query.where?.code?.notIn?.includes(item.code))
           .sort((a, b) => a.displayName.localeCompare(b.displayName))
           .map((item) => {
             const opening = query.select.startingInventories.where;
@@ -167,4 +168,22 @@ test("a zero annual valuation is retained", async () => {
   items.find((row) => row.code === "BOOKS").valuations[0].valuePerUnit = { toNumber: () => 0 };
   const rows = await queryInventoryRows(clientFor(items), 2026, "LOWCOUNTRY");
   assert.equal(rows.find((row) => row.itemName === "Books").valuePerUnit, 0);
+});
+
+
+test("dashboard exclusions omit Baby Blanket and Care Kit Laundry Bags while preserving catalogue data", async () => {
+  const items = seededItems();
+  const before = items.map((item) => item.code);
+  for (const location of ["LOWCOUNTRY", "MIDLANDS"]) {
+    const client = clientFor(items);
+    const rows = await queryInventoryRows(client, 2026, location, {
+      excludeItemCodes: ["BABY_BLANKET", "CARE_KIT_LAUNDRY_BAGS"],
+    });
+    assert.equal(rows.length, 33);
+    assert.equal(rows.some((row) => ["Baby Blanket", "Care Kit Laundry Bags"].includes(row.itemName)), false);
+    assert.ok(rows.some((row) => row.itemName === "Books"));
+    assert.deepEqual(client.calls[0].where.code.notIn, ["BABY_BLANKET", "CARE_KIT_LAUNDRY_BAGS"]);
+  }
+  assert.deepEqual(items.map((item) => item.code), before);
+  assert.equal((await queryInventoryRows(clientFor(items), 2026, "LOWCOUNTRY")).length, 35);
 });

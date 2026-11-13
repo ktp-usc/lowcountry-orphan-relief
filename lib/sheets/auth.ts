@@ -7,7 +7,7 @@ const scope = "https://www.googleapis.com/auth/spreadsheets";
 /** OAuth service-account JWT flow. No delegated user, Drive scope, or write scope. */
 export function createTokenProvider(request: typeof fetch) {
   let cached: { json: string; expiresAt: number; token: Promise<string> } | undefined;
-  return async (json: string): Promise<string> => {
+  return async (json: string, options: { deadlineMs?: number } = {}): Promise<string> => {
     if (!json.trim()) throw new SheetReadError("Set GOOGLE_SERVICE_ACCOUNT_JSON to the service-account JSON.");
     if (cached?.json === json && cached.expiresAt > Date.now() + 60_000) return cached.token;
     let credentials: unknown;
@@ -36,7 +36,7 @@ export function createTokenProvider(request: typeof fetch) {
       const body = await requestJson(request, tokenUrl, {
         method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }),
-      }, "Google authentication");
+      }, "Google authentication", { deadlineMs: options.deadlineMs });
       if (!isRecord(body) || typeof body.access_token !== "string" || !body.access_token || /\s/.test(body.access_token)
         || body.token_type !== "Bearer" || typeof body.expires_in !== "number" || !Number.isFinite(body.expires_in) || body.expires_in <= 0) {
         throw new SheetReadError("Google authentication: invalid access-token response.");

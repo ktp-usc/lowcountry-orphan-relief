@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    { "path": "/api/cron/sync-sheets/lor-inventory/0", "schedule": "0 1 * * *" },
+    { "path": "/api/cron/sync-sheets/mor-inventory/0", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/sync-sheets/lor-referral/0", "schedule": "0 5 * * *" },
+    { "path": "/api/cron/sync-sheets/mor-referral/0", "schedule": "0 7 * * *" }
+  ]
+}

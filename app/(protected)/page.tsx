@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 
 import { DashboardApiError, fetchDashboard } from "@/client/api/inventory";
@@ -12,7 +13,9 @@ import InventoryTable from "@/components/inventory-table";
 import { SignOutButton } from "@/components/sign-out-button";
 import { JotformLinksMenu } from "@/components/jotform-links-menu";
 import { InventoryEditor } from "@/components/inventory-editor";
+import { InventoryRefreshStatus } from "@/components/inventory-refresh-status";
 import { useQueryClient } from "@tanstack/react-query";
+import lorLogo from "@/public/lor-logo.png";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -89,12 +92,22 @@ export default function Home() {
 
   return (
     <main className="mx-auto min-h-screen max-w-[1380px] px-4 pb-10 pt-7 sm:px-9">
-      <header className="mb-6 flex items-start justify-between gap-4">
-        <h1 className="font-heading text-[23px] font-bold tracking-[-0.45px] text-foreground">
-          Lowcountry & Midlands Orphan Relief Inventory
-        </h1>
+      <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <Image
+            src={lorLogo}
+            alt="Lowcountry Orphan Relief logo"
+            width={80}
+            height={80}
+            loading="eager"
+            className="h-16 w-16 shrink-0 object-contain sm:h-20 sm:w-20"
+          />
+          <h1 className="font-heading text-[23px] font-bold tracking-[-0.45px] text-foreground">
+            Lowcountry & Midlands Orphan Relief Inventory
+          </h1>
+        </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
-              <JotformLinksMenu />
+              <JotformLinksMenu location={selectedLocation} />
               <InventoryEditor year={selectedYear} location={selectedLocation} onSaved={(kind, scope) => {
                 if (kind === "valuations") {
                   void Promise.all([
@@ -130,6 +143,7 @@ export default function Home() {
         </p>
       ) : (
         <>
+          <InventoryRefreshStatus refresh={data?.refresh} />
           {hasMissingValuations && (
             <p
               role="status"

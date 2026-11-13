@@ -38,7 +38,14 @@
     "test:sheets": "node --no-warnings --loader ./scripts/lib/sheet-ts-loader.mjs --test tests/normalize-sheet-row.test.mjs tests/sheet-csv.test.mjs",
     "inspect:sheets": "node --import tsx scripts/inspect-sheets.ts",
     "sync:sheets": "node --import tsx scripts/sync-sheets.ts",
-    "test:sync:sheets": "node --import tsx --test tests/sync-sheets.test.mjs"
+    "test:sync:sheets": "node --import tsx --test tests/sync-sheets.test.mjs",
+    "measure:sync:sheets": "node --import tsx scripts/measure-sheets-sync.ts",
+    "test:cron:sheets": "node --import tsx --test tests/sheet-cron.test.mjs",
+    "test:cron:sheets:integration": "node --import tsx --test tests/sheet-cron.integration.test.mjs",
+    "status:sync:sheets": "node --import tsx scripts/check-sheets-sync.ts",
+    "sync:sheets:scheduled": "node --import tsx scripts/run-scheduled-sheets-sync.ts",
+    "test:migration:sheets:local": "node --test tests/sheets-migration-local.test.mjs",
+    "test:inventory:math": "node --import tsx --test lib/inventory/calculate-row.test.mjs lib/inventory/summarize.test.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",

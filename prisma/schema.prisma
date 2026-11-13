@@ -85,6 +85,37 @@ model ItemValuation {
   @@unique([itemId, year])
 }
 
+// Scheduling metadata only; no relationship or cascading writes to inventory.
+model SheetSyncJob {
+  sourceKey                String
+  bucket                   Int
+  leaseOwner               String?
+  leaseExpiresAt           DateTime? @db.Timestamptz(3)
+  lastSuccessfulAt         DateTime? @db.Timestamptz(3)
+  lastSuccessDurationMs     Int?
+  lastSuccessProcessedRows  Int?
+  lastSuccessBucketCount    Int?
+
+  @@id([sourceKey, bucket])
+}
+
+model SheetSyncAttempt {
+  id             String    @id
+  sourceKey      String
+  bucket         Int
+  bucketCount    Int
+  startedAt      DateTime  @default(now()) @db.Timestamptz(3)
+  completedAt    DateTime? @db.Timestamptz(3)
+  status         String   @default("RUNNING")
+  durationMs     Int?
+  processedRows  Int?
+  summary        Json?
+  error          String?
+
+  @@index([sourceKey, bucket, startedAt])
+  @@index([status, startedAt])
+}
+
 model User {
   id            String    @id
   name          String

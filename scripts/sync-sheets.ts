@@ -1,4 +1,5 @@
 import { pathToFileURL } from "node:url";
+import type { PrismaClient } from "../generated/prisma/client.js";
 import { syncSheets } from "../lib/sheets/sync-sheets.js";
 import type { SyncDatabase, SyncSheetsOptions, SyncSheetsSummary } from "../lib/sheets/types.js";
 
@@ -24,7 +25,7 @@ export function parseSyncSheetsArgs(args: string[]): ParsedArgs {
   throw new Error(usage);
 }
 
-export async function createSyncClient(): Promise<SyncClient> {
+export async function createSyncClient(): Promise<PrismaClient> {
   const { config } = await import("dotenv");
   config({ path: ".env.local", quiet: true });
   config({ path: ".env", quiet: true });
@@ -35,7 +36,7 @@ export async function createSyncClient(): Promise<SyncClient> {
     import("@prisma/adapter-pg"),
   ]);
   return new PrismaClient({
-    adapter: new PrismaPg({ connectionString, connectionTimeoutMillis: 10_000 }),
+    adapter: new PrismaPg({ connectionString, connectionTimeoutMillis: 10_000, max: 5 }),
   });
 }
 

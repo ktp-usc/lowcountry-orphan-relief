@@ -1,5 +1,5 @@
 import { createTokenProvider } from "./auth.js";
-import { isRecord, requestJson, SheetReadError } from "./errors.js";
+import { assertReadDeadline, isRecord, requestJson, SheetReadError, withReadDeadline } from "./errors.js";
 import { SHEET_MAPPINGS } from "./mappings.js";
 import { REFERRAL_CANCELLATION_YELLOW } from "./sources.js";
 import type { SheetSource, SheetRow, ReadSheetOptions, ReadSheetResult } from "./types.js";
@@ -10,7 +10,7 @@ type Cell = Record<string, unknown>;
 type Grid = { rows: Map<number, Map<number, Cell>>; rowCount: number; columnCount: number; theme: Map<string, unknown> };
 type ReaderDependencies = {
   request: typeof fetch;
-  getAccessToken: (json: string) => Promise<string>;
+  getAccessToken: (json: string, options?: { deadlineMs?: number }) => Promise<string>;
   cancellationYellow: string | null;
 };
 
@@ -32,6 +32,9 @@ function validate(source: SheetSource, options: ReadSheetOptions, yellow: string
   }
   if (!isRecord(options) || (options.limit !== undefined && (!Number.isSafeInteger(options.limit) || options.limit < 1))) {
     throw new SheetReadError("limit must be a positive safe integer.");
+  }
+  if (options.deadlineMs !== undefined && !Number.isFinite(options.deadlineMs)) {
+    throw new SheetReadError("deadlineMs must be a finite timestamp.");
   }
   if (source.sourceType === "REFERRAL" && (yellow === null || !/^#[0-9a-f]{6}$/i.test(yellow))) {
     throw new SheetReadError("Verify and configure the cancellation color from a real cancelled referral's Submission ID cell.");
@@ -128,6 +131,7 @@ export function createSheetReader(overrides: Partial<ReaderDependencies> = {}) {
   const yellow = overrides.cancellationYellow === undefined ? REFERRAL_CANCELLATION_YELLOW : overrides.cancellationYellow;
   return async (source: SheetSource, options: ReadSheetOptions = {}): Promise<ReadSheetResult> => {
     validate(source, options, yellow);
+    assertReadDeadline(options.deadlineMs);
     const mapping = SHEET_MAPPINGS.find((candidate) => candidate.key === source.key);
     if (!mapping || mapping.jotformFormId !== source.jotformFormId
       || mapping.location !== source.location || mapping.sourceType !== source.sourceType
@@ -135,8 +139,10 @@ export function createSheetReader(overrides: Partial<ReaderDependencies> = {}) {
       || mapping.submissionDateHeader !== source.submissionDateHeader) {
       throw new SheetReadError("No matching calculation mapping is configured for this source.");
     }
-    const accessToken = await token(process.env.GOOGLE_SERVICE_ACCOUNT_JSON ?? "");
+    const accessToken = await withReadDeadline(() => token(process.env.GOOGLE_SERVICE_ACCOUNT_JSON ?? "",
+      { deadlineMs: options.deadlineMs }), options.deadlineMs);
     const get = async (start: number, end: number, columnRanges?: { startColumnIndex: number; endColumnIndex: number }[]) => {
+      assertReadDeadline(options.deadlineMs);
       const body = await requestJson(request, `https://sheets.googleapis.com/v4/spreadsheets/${source.spreadsheetId}:getByDataFilter?fields=${encodeURIComponent(fields)}`, {
         method: "POST", headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -145,7 +151,7 @@ export function createSheetReader(overrides: Partial<ReaderDependencies> = {}) {
           })),
           includeGridData: true,
         }),
-      }, "Google Sheets read");
+      }, "Google Sheets read", { deadlineMs: options.deadlineMs });
       return parseGrid(body, source, start, end);
     };
     const headerGrid = await get(0, 1);
@@ -222,6 +228,7 @@ export function createSheetReader(overrides: Partial<ReaderDependencies> = {}) {
         rows.push({ rowNumber, values, cancelled: source.sourceType === "REFERRAL" && background(idCell, grid.theme.size ? grid.theme : headerGrid.theme, rowNumber) === yellow?.toLowerCase() });
       }
     }
+    assertReadDeadline(options.deadlineMs);
     return { sourceKey: source.key, rows };
   };
 }

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { normalizeSheetRow, SheetValidationError } from "../lib/sheets/normalize-row.ts";
 import { SHEET_MAPPINGS, REFERRAL_CLASSIFICATIONS } from "../lib/sheets/mappings.ts";
+import { createSheetReader } from "../lib/sheets/read-sheet.ts";
 
 const row = (mapping, overrides = {}, { cancelled = false, date = "2026-07-01 9:15:00" } = {}) => ({
   rowNumber: 2,
@@ -57,7 +58,7 @@ for (const mapping of referralMappings) {
     assert.deepEqual(normalizeSheetRow(mapping, reordered), normalizeSheetRow(mapping, standard));
   });
 
-  test(`${mapping.key} uses exact age and sex headers for referral classifications`, () => {
+  test(`${mapping.key} requires the mapped age and sex column names for referral classifications`, () => {
     const female = normalizeSheetRow(mapping, row(mapping, {
       "Tops?": "Yes", "Child's Sex": "Female", "Female Tops Type": "Adult",
     }));
@@ -70,7 +71,7 @@ for (const mapping of referralMappings) {
       "Tops?": "Yes", "Male Tops Type": "Adult",
     });
     delete wrongSexHeader.values["Child's Sex"];
-    wrongSexHeader.values["Child's Sex "] = "Male";
+    wrongSexHeader.values["Child Sex"] = "Male";
     assert.throws(() => normalizeSheetRow(mapping, wrongSexHeader),
       (error) => error instanceof SheetValidationError && error.code === "COLUMN");
   });
@@ -145,12 +146,11 @@ for (const mapping of SHEET_MAPPINGS) {
 }
 
 const mor = SHEET_MAPPINGS.find((mapping) => mapping.key === "mor-referral");
-test("MOR referral requires exact Submission Date and keeps the Eastern timezone convention", () => {
+test("MOR referral requires Submission Date and keeps the Eastern timezone convention", () => {
   const valid = normalizeSheetRow(mor, row(mor));
   assert.equal(valid.input.submission.submissionDate.toISOString(), "2026-07-01T13:15:00.000Z");
   for (const values of [
     { "Childs Age": "", " ": "2026-07-01 09:15:00" },
-    { "Childs Age": "", "Submission Date ": "2026-07-01 09:15:00" },
   ]) {
     const noDate = row(mor, values);
     delete noDate.values["Submission Date"];
@@ -280,5 +280,77 @@ for (const mapping of referralMappings) {
       "School Uniform Tops": "Yes", "Female Tops Type": "Child/Baby",
     })), (error) => error instanceof SheetValidationError && error.code === "REFERRAL"
       && error.message.includes("PAJAMAS"));
+  });
+}
+
+for (const mapping of SHEET_MAPPINGS) {
+  test(`${mapping.key} normalizes header case/spacing consistently and rejects ambiguity`, () => {
+    const standard = row(mapping, mapping.sourceType === "REFERRAL"
+      ? { "Child's Sex": "Female", "Tops?": "Yes", "Female Tops Type": "Adult" }
+      : { "Men's Tops": "5" });
+    const renamed = { ...standard, values: Object.fromEntries(Object.entries(standard.values).map(([key, value]) => [` ${key.toUpperCase()} `, value])) };
+    assert.deepEqual(normalizeSheetRow(mapping, renamed), normalizeSheetRow(mapping, standard));
+    const ambiguous = { ...renamed, values: { ...renamed.values, "Submission ID": "999" } };
+    assert.throws(() => normalizeSheetRow(mapping, ambiguous), (error) => error.code === "COLUMN");
+  });
+
+  test(`${mapping.key} accepts explicit timezone offsets without guessing ambiguous wall times`, () => {
+    for (const [date, expected] of [
+      ["2026-11-01 01:30:00-04:00", "2026-11-01T05:30:00.000Z"],
+      ["2026-11-01 1:30:00-05:00", "2026-11-01T06:30:00.000Z"],
+      ["2026-11-01T05:30:00.123Z", "2026-11-01T05:30:00.123Z"],
+    ]) {
+      const result = normalizeSheetRow(mapping, row(mapping, {}, { date }));
+      assert.equal(result.input.submission.submissionDate.toISOString(), expected);
+    }
+    for (const date of ["2026-11-01 01:30:00", "2026-03-08 02:30:00", "2026-11-01 01:30:00-25:00", "2026-02-30T01:30:00Z"]) {
+      assert.throws(() => normalizeSheetRow(mapping, row(mapping, {}, { date })), (error) => error.code === "DATE");
+    }
+  });
+}
+
+for (const mapping of referralMappings) {
+  test(`${mapping.key} rejects unknown request choices without exposing submitted answers`, () => {
+    for (const header of ["Tops?", "Bottoms?", "Jackets?", "Dresses?", "Pajamas?", "Underwear?", "Shoes?", "Socks?", "Wipes", "Toiletries", "School Uniform Tops", "School Uniform Bottoms", "Diapers or Pullups?", "School"]) {
+      assert.throws(() => normalizeSheetRow(mapping, row(mapping, { [header]: "PRIVATE-TYPO" })), (error) => {
+        assert.equal(error.code, "REFERRAL");
+        assert.ok(error.message.includes(header));
+        assert.equal(error.message.includes("PRIVATE-TYPO"), false);
+        return true;
+      });
+    }
+    for (const unselected of ["", "No", "NONE", " n/a "]) {
+      const result = normalizeSheetRow(mapping, row(mapping, { "Tops?": unselected, "Diapers or Pullups?": unselected, School: unselected }));
+      assert.equal(activity(result, "WOMENS_TOPS"), undefined);
+      assert.equal(activity(result, "DIAPERS"), undefined);
+    }
+    const diapers = normalizeSheetRow(mapping, row(mapping, { "Diapers or Pullups?": "Diapers", School: "Elementary School Bookbag & Supplies" }));
+    assert.ok(activity(diapers, "DIAPERS"));
+    assert.ok(activity(diapers, "ELEMENTARY_SCHOOL_BOOKBAG_SUPPLIES"));
+  });
+}
+
+for (const mapping of SHEET_MAPPINGS) {
+  test(`${mapping.key} passes case/space-varied headers from the actual reader into normalization`, async () => {
+    const source = { ...mapping, spreadsheetId: "fictional" };
+    const standard = row(mapping, mapping.sourceType === "REFERRAL"
+      ? { "Child's Sex": "Female", "Tops?": "Yes", "Female Tops Type": "Adult" }
+      : { "Men's Tops": "5" });
+    const entries = Object.entries(standard.values);
+    const cell = (value) => ({ userEnteredValue: { stringValue: value }, effectiveValue: { stringValue: value } });
+    const read = createSheetReader({
+      cancellationYellow: "#ffff00", getAccessToken: async () => "fictional",
+      request: async (_url, init) => {
+        const range = JSON.parse(init.body).dataFilters[0].gridRange;
+        const header = range.startRowIndex === 0;
+        return Response.json({ spreadsheetId: source.spreadsheetId, sheets: [{
+          properties: { sheetId: source.tabId, gridProperties: { rowCount: 2, columnCount: entries.length } },
+          data: [{ startRow: range.startRowIndex, rowData: [{ values: entries.map(([key, value]) => cell(header ? ` ${key.toUpperCase()} ` : value)) }] }],
+        }] });
+      },
+    });
+    const result = await read(source);
+    assert.equal(result.rows.length, 1);
+    assert.deepEqual(normalizeSheetRow(source, result.rows[0]), normalizeSheetRow(mapping, standard));
   });
 }
