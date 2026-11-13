@@ -77,33 +77,57 @@ export function createSyncSheets(dependencies: Partial<SyncDependencies> = {}) {
         continue;
       }
 
-      for (const row of result.rows) {
-        const submissionId = rowSubmissionId(source, row);
-        let record;
-        try {
-          record = normalize(source, row);
-        } catch (error) {
-          summary.failed++;
-          summary.rowErrors.push({
-            sourceKey: source.key,
-            rowNumber: row.rowNumber,
-            ...(submissionId ? { submissionId } : {}),
-            message: normalizationError(error),
-          });
-          continue;
-        }
+      const concurrency = 5;
+      const startedAt = Date.now();
 
-        try {
-          const saved = await save(client, record);
-          summary[saved.status]++;
-        } catch {
-          summary.failed++;
-          summary.rowErrors.push({
-            sourceKey: source.key,
-            rowNumber: row.rowNumber,
-            ...(submissionId ? { submissionId } : {}),
-            message: "Unable to save the normalized submission.",
-          });
+      console.log(
+          `${source.key}: processing ${result.rows.length} submissions...`,
+      );
+
+      for (let offset = 0; offset < result.rows.length; offset += concurrency) {
+        const batch = result.rows.slice(offset, offset + concurrency);
+
+        await Promise.all(
+            batch.map(async (row) => {
+              const submissionId = rowSubmissionId(source, row);
+              let record;
+
+              try {
+                record = normalize(source, row);
+              } catch (error) {
+                summary.failed++;
+                summary.rowErrors.push({
+                  sourceKey: source.key,
+                  rowNumber: row.rowNumber,
+                  ...(submissionId ? { submissionId } : {}),
+                  message: normalizationError(error),
+                });
+                return;
+              }
+
+              try {
+                const saved = await save(client, record);
+                summary[saved.status]++;
+              } catch {
+                summary.failed++;
+                summary.rowErrors.push({
+                  sourceKey: source.key,
+                  rowNumber: row.rowNumber,
+                  ...(submissionId ? { submissionId } : {}),
+                  message: "Unable to save the normalized submission.",
+                });
+              }
+            }),
+        );
+
+        const processed = offset + batch.length;
+
+        if (processed % 100 === 0 || processed === result.rows.length) {
+          const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
+
+          console.log(
+              `${source.key}: processed ${processed}/${result.rows.length} submissions in ${seconds}s`,
+          );
         }
       }
     }

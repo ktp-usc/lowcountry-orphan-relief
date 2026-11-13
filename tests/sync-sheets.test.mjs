@@ -153,3 +153,36 @@ test("sync CLI exits unsuccessfully when any source or row failed", async () => 
   }
   assert.deepEqual(statuses, [1, 1]);
 });
+
+test("sync processes up to five submissions concurrently", async () => {
+  let active = 0;
+  let peak = 0;
+
+  const sync = createSyncSheets({
+    sources: [source("concurrency-test")],
+    read: async () => ({
+      sourceKey: "concurrency-test",
+      rows: Array.from(
+          { length: 12 },
+          (_, index) => row(index + 2, String(index + 1)),
+      ),
+    }),
+    normalize: () => ({ kind: "active" }),
+    save: async () => {
+      active++;
+      peak = Math.max(peak, active);
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      active--;
+      return { status: "created" };
+    },
+  });
+
+  const summary = await sync({});
+
+  assert.equal(peak, 5);
+  assert.equal(active, 0);
+  assert.equal(summary.created, 12);
+  assert.equal(summary.failed, 0);
+});
