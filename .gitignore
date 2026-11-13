@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+/imports/
+/exports/
 
 # next.js
 /.next/
@@ -50,4 +52,3 @@ next-env.d.ts
 *.iml
 out
 gen
-

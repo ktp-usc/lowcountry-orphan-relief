@@ -41,8 +41,15 @@ test("all four forms use real normalizers and the KAN-18 saver; second import is
     assert.equal(source.sourceType, form.sourceType);
     assert.equal(source.submissionDate.toISOString(), "2026-07-01T16:00:00.000Z");
     const movements = state.activities.filter((row) => row.jotformFormId === form.id);
-    assert.deepEqual(movements, [{ itemId: wipeId, quantity: form.sourceType === "INVENTORY" ? 3 : 1,
-      direction: form.sourceType === "INVENTORY" ? "IN" : "OUT", jotformFormId: form.id, jotformSubmissionId: source.jotformSubmissionId }]);
+    const expected = [{ itemId: wipeId, quantity: form.sourceType === "INVENTORY" ? 3 : 1,
+      direction: form.sourceType === "INVENTORY" ? "IN" : "OUT", jotformFormId: form.id, jotformSubmissionId: source.jotformSubmissionId }];
+    if (form.sourceType === "REFERRAL") {
+      for (const code of ["BOOKS", "STUFFED_ANIMALS"]) expected.push({
+        itemId: items.find((item) => item.code === code).id, quantity: 2, direction: "OUT",
+        jotformFormId: form.id, jotformSubmissionId: source.jotformSubmissionId,
+      });
+    }
+    assert.deepEqual(movements, expected);
   }
   const second = await importSubmissions(client, { limitPerForm: 1 }, { fetchSubmissions: fetchFrom(data) });
   assert.deepEqual(second, { saved: 0, skipped: 4, failed: 0, formErrors: [], submissionErrors: [] });
@@ -100,8 +107,8 @@ test("equal IDs in different forms are separate source submissions", async () =>
 });
 
 test("an empty activity list still imports a source once; empty forms do not fail", async () => {
-  const client = createImportDatabase(items), form = forms[2];
-  const data = new Map([[form.id, [raw(form, "4001", "No")]]]);
+  const client = createImportDatabase(items), form = forms[0];
+  const data = new Map([[form.id, [raw(form, "4001", "0")]]]);
   assert.equal((await importSubmissions(client, {}, { fetchSubmissions: fetchFrom(data) })).saved, 1);
   assert.equal((await importSubmissions(client, {}, { fetchSubmissions: fetchFrom(data) })).skipped, 1);
   assert.equal(client.snapshot().activities.length, 0);
@@ -126,7 +133,7 @@ test("form configuration is checked against normalized metadata and directions b
     { ...valid, submission: { ...valid.submission, sourceType: "REFERRAL" } },
     { ...valid, submission: { ...valid.submission, jotformSubmissionId: "other" } },
     { ...valid, submission: { ...valid.submission, submissionDate: new Date(NaN) } },
-    { ...valid, inventoryActivities: [{ itemCode: "WIPES", direction: "OUT", quantity: 1 }] },
+    { ...valid, inventoryActivities: [{ itemCode: "WIPES", direction: "INVALID", quantity: 1 }] },
   ]) {
     const client = createImportDatabase(items);
     const result = await importSubmissions(client, {}, { fetchSubmissions: fetchFrom(data), normalizeInventory: () => input });
@@ -435,6 +442,26 @@ test("clothing diagnostics reveal missing/unsupported selections without exposin
   assert.equal(withRecognizedSelection.classificationFields[0].recognizedChoice, true);
 });
 
+test("shared classification diagnostics identify the requested item and its selector fields", async () => {
+  const form = forms[3];
+  for (const [requestId, expectedTypes] of [
+    ["147", ["141", "142"]], ["169", ["90", "93"]], ["171", ["104", "105"]],
+  ]) {
+    const data = raw(form, `3000${requestId}`);
+    data.answers[requestId] = { type: "control_radio", answer: "Yes" };
+    data.answers["17"] = { type: "control_radio", answer: "Female" };
+    const result = await importSubmissions(createImportDatabase(items), {}, {
+      fetchSubmissions: fetchFrom(new Map([[form.id, [data]]])),
+    });
+    assert.equal(result.failed, 1);
+    assert.match(result.submissionErrors[0].message, new RegExp(`field ${requestId}`));
+    const [diagnostic] = modules.diagnostics.collectImportDiagnostics(new Map([[form.id, [data]]]), result.submissionErrors);
+    assert.equal(diagnostic.kind, "referral-classification");
+    assert.deepEqual(diagnostic.classificationFields.map(({ fieldId }) => fieldId), ["17", ...expectedTypes]);
+    assert.equal(modules.diagnostics.isConfirmedSourceIssue(data, result.submissionErrors[0]), true);
+  }
+});
+
 test("diagnostics handle uncaptured failures and unknown stages safely", () => {
   const data = samples();
   const errors = [
@@ -455,8 +482,8 @@ function storedRows(client) {
 
 async function partialSample() {
   const data = new Map(forms.map((form, index) => [form.id, [raw(form, `4000${index}1`), raw(form, `4000${index}2`)]]));
-  data.get(forms[1].id)[0].answers["124"] = { type: "control_number", answer: "-2" };
-  data.get(forms[1].id)[1].answers["70"] = { type: "control_number", answer: "-3" };
+  data.get(forms[1].id)[0].answers["124"] = { type: "control_number", answer: "1.5" };
+  data.get(forms[1].id)[1].answers["70"] = { type: "control_number", answer: "2.5" };
   data.get(forms[3].id)[0].answers["88"] = { type: "control_radio", answer: "Yes" };
   data.get(forms[3].id)[0].answers["17"] = { type: "control_radio", answer: "Female" };
   const client = createImportDatabase(items);
@@ -516,7 +543,7 @@ test("known source issue classification verifies the actual field and required a
   const quantityError = { formId: inventory.form_id, submissionId: inventory.id,
     message: "Normalization failed: invalid quantity in field 124; expected a positive whole number or zero to omit." };
   inventory.answers["124"] = { type: "control_number", answer: "-2" };
-  assert.equal(confirmed(inventory, quantityError), true);
+  assert.equal(confirmed(inventory, quantityError), false);
   inventory.answers["124"].answer = "1.5"; assert.equal(confirmed(inventory, quantityError), true);
   for (const value of ["2", "0", "", "1,234", "PRIVATE-ANSWER", true, ["-2"]]) {
     inventory.answers["124"].answer = value; assert.equal(confirmed(inventory, quantityError), false);
