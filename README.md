@@ -409,9 +409,11 @@ The implementation is TypeScript in `prisma/seed.ts`. Both commands use
 item IDs and existing inventory history. Reference names and prices are
 updated to match the supplied table. The SQL migration and constraints remain.
 
-Prices retain the source units: diapers and pull-ups are $7.25 per pack of 30.
-Unit and quantity metadata are retained in `prisma/seed-data.ts` for the
-future normalizer. The source has no visible effective year; 2026 is the
+The valuation table's unit and quantity metadata are retained in
+`prisma/seed-data.ts`. Diapers and pull-ups are valued at $7.25 per pack of 30.
+Socks and underwear are counted as bundles of five pairs, so their listed
+per-item valuation is multiplied by five before it is stored as the value of
+one inventory bundle. The source has no visible effective year; 2026 is the
 chosen reporting year.
 
 `npm run db:check:seed -- --demo` verifies seeded records on an existing
@@ -427,9 +429,11 @@ database. Both test commands compile the query and generated client first, so
 they run on every Node version supported by this project.
 
 `getInventory(year, location)` returns `itemName`, `initialCount`, `itemsAdded`,
-`itemsSubtracted` and `valuePerUnit` for each item. An item without a valuation for the requested year causes
-an explicit error instead of being silently omitted. Missing opening counts and
-activity produce zero. The reporting year uses UTC boundaries.
+`itemsSubtracted` and `valuePerUnit` for each item. An item without a valuation
+for the requested year remains in the results with no monetary value; the
+dashboard marks that value unavailable and does not present a complete current
+value total. Missing opening counts and activity produce zero. The reporting
+year uses UTC boundaries.
 
 Run `npm run check:inventory` to validate the schema, generate the client, apply
 all pending migrations, run seed tests and valuation checks, run database
