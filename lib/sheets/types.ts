@@ -20,6 +20,7 @@ export type SheetRow = {
 
 export type ReadSheetOptions = {
   limit?: number;
+  deadlineMs?: number;
 };
 
 export type ReadSheetResult = {
@@ -38,7 +39,7 @@ export type NormalizedSheetRecord =
       jotformSubmissionId: string;
     };
 
-export type SyncDatabase = Pick<PrismaClient, "$transaction">;
+export type SyncDatabase = Pick<PrismaClient, "$transaction"> & Partial<Pick<PrismaClient, "sourceSubmission">>;
 
 export type SyncSubmissionResult = {
   status: "created" | "updated" | "unchanged" | "cancelled";
@@ -46,6 +47,10 @@ export type SyncSubmissionResult = {
 
 export type SyncSheetsOptions = {
   limitPerSource?: number;
+  sourceKey?: string;
+  bucket?: { index: number; count: number };
+  /** Cooperative stop before the platform kills the process. */
+  deadlineMs?: number;
 };
 export type SyncSheetsSummary = {
   created: number;

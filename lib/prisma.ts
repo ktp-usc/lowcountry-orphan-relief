@@ -14,7 +14,7 @@ function createPrismaClient() {
     throw new Error("Set DATABASE_URL in .env to the Neon PostgreSQL connection string.");
   }
 
-  const adapter = new PrismaPg({ connectionString });
+  const adapter = new PrismaPg({ connectionString, connectionTimeoutMillis: 10_000, max: 5 });
   return new PrismaClient({ adapter });
 }
 

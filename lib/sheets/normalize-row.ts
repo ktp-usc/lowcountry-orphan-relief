@@ -18,11 +18,13 @@ export class SheetValidationError extends Error {
   }
 }
 
-function readValue(row: SheetRow, header: string): string {
-  if (!Object.hasOwn(row.values, header) || typeof row.values[header] !== "string") {
-    throw new SheetValidationError("COLUMN", `Missing or invalid column: ${header}.`);
+export function readSheetValue(row: Pick<SheetRow, "values">, header: string): string {
+  const matches = Object.entries(row.values).filter(([key]) =>
+    key.trim().toLowerCase() === header.trim().toLowerCase());
+  if (matches.length !== 1 || typeof matches[0][1] !== "string") {
+    throw new SheetValidationError("COLUMN", `Missing, ambiguous or invalid column: ${header}.`);
   }
-  return row.values[header];
+  return matches[0][1];
 }
 
 function mappedAnswers(
@@ -31,9 +33,29 @@ function mappedAnswers(
 ): Record<string, { answer: string }> {
   const answers: Record<string, { answer: string }> = {};
   for (const [id, header] of Object.entries(answerHeaders)) {
-    answers[id] = { answer: readValue(row, header) };
+    answers[id] = { answer: readSheetValue(row, header) };
   }
   return answers;
+}
+
+function validateReferralChoices(
+  answers: Record<string, { answer: string }>,
+  headers: Readonly<Record<string, string>>,
+) {
+  const unselected = ["", "no", "none", "n/a"];
+  const binaryIds = [...REFERRAL_CLASSIFICATIONS.map(([, requestId]) => requestId), "147", "81", "85", "169", "171"];
+  const choices: Array<[string, readonly string[]]> = [
+    ...binaryIds.map((id): [string, readonly string[]] => [id, [...unselected, "yes"]]),
+    ["159", [...unselected, "diapers", "pull ups"]],
+    ["83", [...unselected, "elementary school bookbag & supplies", "middle/high school bookbag & supplies"]],
+  ];
+  for (const [id, allowed] of choices) {
+    if (!allowed.includes(answers[id].answer.trim().toLowerCase())) {
+      // Never echo the submitted answer. Unknown nonblank choices must not
+      // silently remove activities when reconciling an existing submission.
+      throw new SheetValidationError("REFERRAL", `Invalid referral selection for field ${id} (${headers[id]}).`);
+    }
+  }
 }
 
 function fillMissingReferralTypes(
@@ -146,17 +168,17 @@ export function normalizeSheetRow(source: SheetSource, row: SheetRow): Normalize
     && entry.submissionIdHeader === source.submissionIdHeader
     && entry.submissionDateHeader === source.submissionDateHeader);
   if (!mapping) throw new SheetValidationError("SOURCE", "Invalid or unsupported source mapping.");
-  const id = readValue(row, source.submissionIdHeader).trim();
+  const id = readSheetValue(row, source.submissionIdHeader).trim();
   if (!/^\d+$/.test(id)) throw new SheetValidationError("SUBMISSION_ID", "Missing or invalid submission ID.");
   if (row.cancelled) {
     return { kind: "cancelled", jotformFormId: formId, jotformSubmissionId: id };
   }
-  const dateText = readValue(row, source.submissionDateHeader).trim();
-  const timestamp = /^(\d{4}-\d{2}-\d{2}) (\d{1,2}:\d{2}:\d{2})$/.exec(dateText);
+  const dateText = readSheetValue(row, source.submissionDateHeader).trim();
+  const timestamp = /^(\d{4}-\d{2}-\d{2})[ T](\d{1,2}:\d{2}:\d{2})(\.\d{1,3})?(Z|[+-]\d{2}:\d{2})?$/.exec(dateText);
   if (!timestamp) throw new SheetValidationError("DATE", "Missing or invalid submission date.");
   let date: Date;
   try {
-    date = parseJotformSubmissionDate(`${timestamp[1]} ${timestamp[2].padStart(8, "0")}`);
+    date = parseJotformSubmissionDate(`${timestamp[1]} ${timestamp[2].padStart(8, "0")}${timestamp[3] ?? ""}${timestamp[4] ?? ""}`);
   } catch {
     throw new SheetValidationError("DATE", "Invalid or ambiguous submission date.");
   }
@@ -171,9 +193,11 @@ export function normalizeSheetRow(source: SheetSource, row: SheetRow): Normalize
       throw error;
     }
   }
+  const originalAnswers = mappedAnswers(mapping.answerHeaders, row);
+  validateReferralChoices(originalAnswers, mapping.answerHeaders);
   const { answers, inferred } = fillMissingReferralTypes(
     row,
-    mappedAnswers(mapping.answerHeaders, row),
+    originalAnswers,
   );
 
   try {

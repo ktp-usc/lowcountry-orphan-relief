@@ -4,6 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 // Fast check only: is there a session cookie? The real session + allowlist
 // check happens on the server (see app/(protected)/layout.tsx and the API route).
 export function proxy(request: NextRequest) {
+  // Cron uses its own bearer-secret authentication in the handler.
+  if (request.nextUrl.pathname.startsWith("/api/cron/sync-sheets/")) {
+    return NextResponse.next();
+  }
   const sessionCookie = getSessionCookie(request);
 
   if (!sessionCookie) {

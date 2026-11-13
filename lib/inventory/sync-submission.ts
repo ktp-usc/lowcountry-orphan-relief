@@ -15,7 +15,7 @@ type SubmissionKey = {
   jotformSubmissionId: string;
 };
 
-type ExistingSubmission = {
+export type ExistingSubmission = {
   id: number;
   location: Location;
   sourceType: SourceType;
@@ -74,7 +74,7 @@ const LOCATIONS: Location[] = ["LOWCOUNTRY", "MIDLANDS"];
 const SOURCE_TYPES: SourceType[] = ["INVENTORY", "REFERRAL"];
 
 // Same lookup shape everywhere so the cancel and active paths share it
-const EXISTING_SELECT = {
+export const EXISTING_SELECT = {
   id: true,
   location: true,
   sourceType: true,
@@ -86,7 +86,7 @@ const EXISTING_SELECT = {
       item: { select: { code: true } },
     },
   },
-};
+} as const;
 
 const result = (
   status: SyncSubmissionResult["status"],
@@ -158,6 +158,33 @@ function signature(activities: ActivityValue[]): string {
     .map((a) => JSON.stringify([a.code, a.quantity, a.direction]))
     .sort()
     .join("\n");
+}
+
+function matchesActive(
+  existing: ExistingSubmission | null,
+  submission: SubmissionSaveInput["submission"],
+  activities: ActivityValue[],
+): boolean {
+  return existing !== null
+    && existing.location === submission.location
+    && existing.sourceType === submission.sourceType
+    && existing.submissionDate.getTime() === submission.submissionDate.getTime()
+    && signature(existing.inventoryActivities.map((a) => ({
+      code: a.item.code, quantity: a.quantity, direction: a.direction,
+    }))) === signature(activities);
+}
+
+/** Validate even on the fast path; share exactly the transactional comparison. */
+export function unchangedSubmissionResult(
+  record: NormalizedSheetRecord,
+  existing: ExistingSubmission | null,
+): SyncSubmissionResult | undefined {
+  if (record.kind === "cancelled") {
+    buildKey(record.jotformFormId, record.jotformSubmissionId);
+    return !existing || existing.inventoryActivities.length === 0 ? result("cancelled") : undefined;
+  }
+  const { activities } = validateActive(record.input);
+  return matchesActive(existing, record.input.submission, activities) ? result("unchanged") : undefined;
 }
 
 async function syncCancelled(
@@ -240,25 +267,7 @@ export async function syncSubmission(
       return result("created");
     }
 
-    // Compare real values, not IDs or order
-    const metadataChanged =
-      existing.location !== submission.location ||
-      existing.sourceType !== submission.sourceType ||
-      existing.submissionDate.getTime() !== submission.submissionDate.getTime();
-
-    const existingActivities: ActivityValue[] = existing.inventoryActivities.map(
-      (a) => ({
-        code: a.item.code,
-        quantity: a.quantity,
-        direction: a.direction,
-      }),
-    );
-    const activitiesChanged =
-      signature(existingActivities) !== signature(activities);
-
-    if (!metadataChanged && !activitiesChanged) {
-      return result("unchanged");
-    }
+    if (matchesActive(existing, submission, activities)) return result("unchanged");
 
     // Changed (or restored after a cancellation): replace the activities
     await db.sourceSubmission.update({

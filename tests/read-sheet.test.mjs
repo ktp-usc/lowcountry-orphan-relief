@@ -512,3 +512,68 @@ test("referral readers include available optional size columns with original hea
   assert.equal(Object.hasOwn(result.rows[0].values, "Adult Male Tops Size"), false);
   assert.equal(Object.hasOwn(result.rows[0].values, "Name"), false);
 });
+
+test("deadline expiry during pagination rejects the whole read before later pages", async (t) => {
+  let clock = 0;
+  t.mock.method(Date, "now", () => clock);
+  const h = harness(fixtures[0], (data) => {
+    data.headerResponse.sheets[0].properties.gridProperties.rowCount = 1002;
+    data.dataResponse.sheets[0].properties.gridProperties.rowCount = 1002;
+  }, { getAccessToken: async () => "FICTIONAL_TOKEN" });
+  // Return the first page normally, then expire the budget during its parsing.
+  const originalJson = Response.prototype.json;
+  t.mock.method(Response.prototype, "json", async function () {
+    const value = await originalJson.call(this);
+    if (h.requests.at(-1).range.startRowIndex === 1) clock = 280000;
+    return value;
+  });
+  await assert.rejects(h.read({ deadlineMs: 270000 }), /deadline.*incomplete/i);
+  assert.deepEqual(h.requests.map(({ range }) => range.startRowIndex), [0, 1]);
+});
+
+test("expired/invalid read budgets stop before authentication or any Sheet request", async () => {
+  const h = harness(undefined, undefined, { getAccessToken: () => assert.fail("No authentication after deadline") });
+  await assert.rejects(h.read({ deadlineMs: Date.now() - 1 }), /deadline.*incomplete/i);
+  for (const deadlineMs of [NaN, Infinity, -Infinity]) await assert.rejects(h.read({ deadlineMs }), /finite timestamp/);
+  assert.equal(h.requests.length, 0);
+});
+
+test("authentication waits are bounded by the read deadline", async () => {
+  const h = harness(undefined, undefined, { getAccessToken: () => new Promise(() => {}) });
+  await assert.rejects(h.read({ deadlineMs: Date.now() + 30 }), /deadline.*incomplete/i);
+  assert.equal(h.requests.length, 0);
+});
+
+test("retry and response-body waits cannot outlive the overall read budget", async () => {
+  let calls = 0;
+  await assert.rejects(modules.errors.requestJson(async () => {
+    calls++;
+    return new Response("PRIVATE", { status: 429, headers: { "retry-after": "2" } });
+  }, "https://example.test", {}, "Google Sheets read", { deadlineMs: Date.now() + 1000,
+    sleep: () => assert.fail("Retry-After exceeds the budget") }), /deadline.*incomplete/i);
+  assert.equal(calls, 1);
+  for (const request of [
+    () => new Promise(() => {}),
+    async () => ({ ok: true, status: 200, json: () => new Promise(() => {}) }),
+  ]) {
+    await assert.rejects(modules.errors.requestJson(request, "https://example.test", {}, "Google Sheets read", {
+      deadlineMs: Date.now() + 30,
+    }), /deadline.*incomplete/i);
+  }
+});
+
+test("a caller's short deadline also bounds a shared in-flight authentication token", async () => {
+  const json = credential();
+  process.env.GOOGLE_SERVICE_ACCOUNT_JSON = json;
+  let resolveToken;
+  const provider = modules.auth.createTokenProvider(() => new Promise((resolve) => { resolveToken = resolve; }));
+  const pending = provider(json);
+  const read = modules.reader.createSheetReader({ getAccessToken: provider,
+    request: () => assert.fail("No Sheet read after authentication deadline") });
+  try {
+    await assert.rejects(read(fixtures[0].source, { deadlineMs: Date.now() + 30 }), /deadline.*incomplete/i);
+  } finally {
+    resolveToken(Response.json({ access_token: "FICTIONAL_TOKEN", token_type: "Bearer", expires_in: 3600 }));
+    await pending;
+  }
+});

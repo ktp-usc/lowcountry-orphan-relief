@@ -4,6 +4,7 @@ import { isEmailAllowed } from "@/lib/allowlist";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { itemValuations } from "@/prisma/seed-data";
+import { dashboardItemWhere } from "@/lib/inventory/dashboard-categories";
 
 export const runtime = "nodejs";
 
@@ -28,6 +29,7 @@ export async function GET(request: Request) {
   if (!location || !locations.has(location as Location)) return NextResponse.json({ error: "Invalid location." }, { status: 400 });
 
   const items = await prisma.item.findMany({
+    where: dashboardItemWhere,
     orderBy: { displayName: "asc" },
     select: { id: true, code: true, displayName: true, startingInventories: { where: { year, location: location as Location }, select: { startingQuantity: true } }, valuations: { where: { year }, select: { valuePerUnit: true } } },
   });
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
   if (kind !== "counts" && kind !== "valuations") return NextResponse.json({ error: "Invalid edit type." }, { status: 400 });
   if (items.some((entry) => !entry || !Number.isSafeInteger(entry.id) || (typeof entry.value !== "string" && typeof entry.value !== "number") || (entry.expectedValue !== null && typeof entry.expectedValue !== "number"))) return NextResponse.json({ error: "Invalid item values." }, { status: 400 });
 
-  const catalogue = await prisma.item.findMany({ select: { id: true, code: true } });
+  const catalogue = await prisma.item.findMany({ where: dashboardItemWhere, select: { id: true, code: true } });
   if (!items.length || new Set(items.map((item) => item.id)).size !== items.length || items.some((entry) => !catalogue.some((item) => item.id === entry.id))) return NextResponse.json({ error: "Include valid item values." }, { status: 400 });
   for (const entry of items) {
     const value = String(entry.value);
