@@ -30,7 +30,7 @@ function normalizationError(error: unknown): string {
     case "SUBMISSION_ID": return "The submission ID is missing or invalid.";
     case "DATE": return "The submission date is missing or invalid.";
     case "QUANTITY": return "An inventory quantity is invalid.";
-    case "REFERRAL": return "A referral selection is missing or invalid.";
+    case "REFERRAL": return error.message;
     default: return "Unable to normalize this row.";
   }
 }

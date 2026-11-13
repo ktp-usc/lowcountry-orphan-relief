@@ -4,6 +4,7 @@ import type { SheetSource } from "./types.js";
 export type SheetMapping = SheetSource & {
   fileName: string;
   answerHeaders: Readonly<Record<string, string>>;
+  extraHeaders?: readonly string[];
 };
 
 const inventoryAnswerHeaders: Readonly<Record<string, string>> = {
@@ -34,6 +35,25 @@ const referralAnswerHeaders: Readonly<Record<string, string>> = {
   "171": "School Uniform Bottoms",
 };
 
+export const REFERRAL_CLASSIFICATIONS = [
+  // Item, request field, male type field, female type field
+  ["Tops", "88", "90", "93"],
+  ["Bottoms", "103", "104", "105"],
+  ["Jackets", "110", "111", "112"],
+  ["Dresses", "117", "", "119"],
+  ["Pajamas", "126", "127", "128"],
+  ["Underwear", "133", "134", "135"],
+  ["Shoes", "140", "141", "142"],
+] as const;
+
+export const REFERRAL_SIZE_HEADERS = REFERRAL_CLASSIFICATIONS.flatMap(
+  ([item, , maleType]) =>
+    (maleType ? ["Male", "Female"] : ["Female"]).flatMap((sex) => [
+      `Adult ${sex} ${item} Size`,
+      `Child ${sex} ${item} Size`,
+    ]),
+);
+
 const source = (
   formIndex: number,
   key: string,
@@ -52,6 +72,8 @@ const source = (
     submissionDateHeader: "Submission Date",
     fileName,
     answerHeaders,
+    extraHeaders:
+      form.sourceType === "REFERRAL" ? REFERRAL_SIZE_HEADERS : [],
   };
 };
 

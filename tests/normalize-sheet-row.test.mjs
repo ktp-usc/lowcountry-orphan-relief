@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { normalizeSheetRow, SheetValidationError } from "../lib/sheets/normalize-row.ts";
-import { SHEET_MAPPINGS } from "../lib/sheets/mappings.ts";
+import { SHEET_MAPPINGS, REFERRAL_CLASSIFICATIONS } from "../lib/sheets/mappings.ts";
 
 const row = (mapping, overrides = {}, { cancelled = false, date = "2026-07-01 9:15:00" } = {}) => ({
   rowNumber: 2,
@@ -171,3 +171,114 @@ test("validates source and submission IDs without leaking values", () => {
   }
   assert.throws(() => normalizeSheetRow({ ...mapping, jotformFormId: "" }, row(mapping)), /source/i);
 });
+
+for (const mapping of referralMappings) {
+  test(`${mapping.key} infers child types from sizes and agreement, including socks and uniforms`, (t) => {
+    const warnings = [];
+    t.mock.method(console, "warn", (message) => warnings.push(message));
+    const data = row(mapping, {
+      "Child's Sex": "Male",
+      "Tops?": "Yes", "Bottoms?": "Yes", "Jackets?": "Yes", "Underwear?": "Yes",
+      "Shoes?": "Yes", "Socks?": "Yes", "School Uniform Tops": "Yes", "School Uniform Bottoms": "Yes",
+      "Child Female Bottoms Size": "6", "Child Male Jackets Size": "6",
+      "Child Female Underwear Size": "6", "Adult Male Tops Size": "S", "Child Male Tops Size": "6",
+    });
+    const original = structuredClone(data);
+    const result = normalizeSheetRow(mapping, data);
+    for (const category of ["TOPS", "BOTTOMS", "JACKETS_HOODIES", "UNDERWEAR", "SHOES", "SOCKS"]) {
+      assert.ok(activity(result, `CHILDRENS_${category}`));
+    }
+    assert.deepEqual(data, original);
+    assert.deepEqual(warnings, [
+      `${mapping.key}: submission 0009876543210987654321, row 2: inferred classifications for Tops, Bottoms, Jackets, Underwear, Shoes.`,
+    ]);
+  });
+
+  test(`${mapping.key} infers adult dresses from an optional size column`, (t) => {
+    t.mock.method(console, "warn", () => {});
+    const result = normalizeSheetRow(mapping, row(mapping, {
+      "Child's Sex": "Female", "Dresses?": "Yes", " adult female dresses size ": " M ",
+    }));
+    assert.ok(activity(result, "WOMENS_DRESSES"));
+  });
+
+  test(`${mapping.key} fills classifications for socks and uniforms without base requests`, (t) => {
+    t.mock.method(console, "warn", () => {});
+    const result = normalizeSheetRow(mapping, row(mapping, {
+      "Child's Sex": "Female", "Socks?": "Yes", "School Uniform Tops": "Yes", "School Uniform Bottoms": "Yes",
+      "Adult Female Shoes Size": "7", "Child Male Tops Size": "6", "Adult Female Bottoms Size": "M",
+    }));
+    for (const code of ["WOMENS_SOCKS", "CHILDRENS_TOPS", "WOMENS_BOTTOMS"]) {
+      assert.ok(activity(result, code));
+    }
+    assert.equal(activity(result, "WOMENS_SHOES"), undefined);
+  });
+
+  test(`${mapping.key} keeps unresolved and explicit invalid classifications as errors`, (t) => {
+    t.mock.method(console, "warn", () => assert.fail("Failed rows must not log successful inference"));
+    for (const overrides of [
+      {},
+      { "Adult Female Tops Size": "M" },
+      { "Child Male Tops Size": "6", "Adult Male Tops Size": "S" },
+      { "Child Male Tops Size": " N/A " },
+      { "Child Male Tops Size": "none" },
+      { "Child Male Tops Size": "no" },
+      { "Male Tops Type": "PRIVATE-INVALID", "Child Male Tops Size": "6" },
+      { "Bottoms?": "Yes", "Male Bottoms Type": "Adult", "Jackets?": "Yes", "Male Jackets Type": "Child/Baby" },
+      { "Male Bottoms Type": "Adult" },
+      { "Child's Sex": "", "Child Male Tops Size": "6" },
+    ]) {
+      assert.throws(() => normalizeSheetRow(mapping, row(mapping, {
+        "Child's Sex": "Male", "Tops?": "Yes", ...overrides,
+      })), (error) => error instanceof SheetValidationError
+        && error.code === "REFERRAL" && !error.message.includes("PRIVATE-INVALID"));
+    }
+  });
+
+  test(`${mapping.key} preserves explicit classifications over size hints`, (t) => {
+    t.mock.method(console, "warn", () => assert.fail("Explicit types must not be inferred"));
+    const result = normalizeSheetRow(mapping, row(mapping, {
+      "Child's Sex": "Female", "Tops?": "Yes", "Female Tops Type": "Adult", "Child Female Tops Size": "6",
+    }));
+    assert.ok(activity(result, "WOMENS_TOPS"));
+    assert.equal(activity(result, "CHILDRENS_TOPS"), undefined);
+  });
+}
+
+
+for (const mapping of referralMappings) {
+  test(`${mapping.key} borrows agreed types from socks and uniforms for every clothing category`, (t) => {
+    t.mock.method(console, "warn", () => {});
+    const donors = [
+      ["Socks?", "Female Shoes Type"],
+      ["School Uniform Tops", "Female Tops Type"],
+      ["School Uniform Bottoms", "Female Bottoms Type"],
+    ];
+    for (const [item, requestId, , typeId] of REFERRAL_CLASSIFICATIONS) {
+      for (const [requestHeader, typeHeader] of donors) {
+        if (mapping.answerHeaders[typeId] === typeHeader) continue;
+        for (const type of ["Adult", "Child/Baby"]) {
+          const overrides = {
+            "Child's Sex": "Female", "Childs Age": "6 years",
+            [mapping.answerHeaders[requestId]]: "Yes",
+            [requestHeader]: "Yes", [typeHeader]: type,
+          };
+          const inferred = normalizeSheetRow(mapping, row(mapping, overrides));
+          const explicit = normalizeSheetRow(mapping, row(mapping, {
+            ...overrides, [mapping.answerHeaders[typeId]]: type,
+          }));
+          assert.deepEqual(inferred, explicit, `${item} should borrow ${type} from ${requestHeader}`);
+        }
+      }
+    }
+  });
+
+  test(`${mapping.key} refuses to choose between conflicting socks and uniform types`, () => {
+    assert.throws(() => normalizeSheetRow(mapping, row(mapping, {
+      "Child's Sex": "Female", "Childs Age": "6 years", "Pajamas?": "Yes",
+      "Socks?": "Yes", "Female Shoes Type": "Adult",
+      "School Uniform Tops": "Yes", "Female Tops Type": "Child/Baby",
+    })), (error) => error instanceof SheetValidationError && error.code === "REFERRAL"
+      && error.message.includes("PAJAMAS"));
+  });
+}

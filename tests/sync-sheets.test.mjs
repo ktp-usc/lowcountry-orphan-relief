@@ -186,3 +186,15 @@ test("sync processes up to five submissions concurrently", async () => {
   assert.equal(summary.created, 12);
   assert.equal(summary.failed, 0);
 });
+test("referral failures retain controlled field validation details", async () => {
+  const message = "An adult or child/baby selection is required for requested supply field 88 (TOPS).";
+  const sync = createSyncSheets({
+    sources: [source("referral")],
+    read: async () => ({ sourceKey: "referral", rows: [row(2, "301")] }),
+    normalize: () => { throw new SheetValidationError("REFERRAL", message); },
+    save: async () => assert.fail("Invalid referral must not be saved"),
+  });
+  const summary = await sync({});
+  assert.equal(summary.failed, 1);
+  assert.deepEqual(summary.rowErrors, [{ sourceKey: "referral", rowNumber: 2, submissionId: "301", message }]);
+});
