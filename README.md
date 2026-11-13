@@ -194,6 +194,65 @@ responses and need no Jotform key. Scripts use native TypeScript loading when
 available and the existing TypeScript dev dependency on Node 20, so no new
 dependency or lockfile update is required. API reference: [Jotform API](https://api.jotform.com/docs/).
 
+## Google Sheets reader
+
+`readSheet(source, { limit })` in `lib/sheets/read-sheet.ts` is a read-only Google
+Sheets API hook. It returns `{ sourceKey, rows }`, where each row contains its
+actual 1-based spreadsheet row number, a string-valued map keyed by the original
+headers, and `cancelled`. Returned values are limited to Submission ID,
+Submission Date and the answer columns mapped in `lib/sheets/mappings.ts`.
+This includes male/female shoe type fields needed for sock classification;
+names, contact details, notes and unrelated columns are neither requested nor
+returned. The reader does not normalize requests, call Jotform or write to the
+database. Shared contracts live in `lib/sheets/types.ts`.
+
+Set `GOOGLE_SERVICE_ACCOUNT_JSON` in the ignored `.env.local` or `.env` file to
+the entire service-account JSON object. Use a single-quoted dotenv value and
+preserve JSON's escaped `\n` characters in `private_key`. Enable the Google
+Sheets API and share the four documents with the service account as **Viewer**.
+The OAuth scope is `https://www.googleapis.com/auth/spreadsheets`; the reader
+only performs read operations. Existing process variables take precedence over
+`.env.local`, then `.env`. Keep these credentials server-only and out of git.
+
+```bash
+npm run test:sheets
+npm run inspect:sheets -- --limit 2
+npm run inspect:sheets -- --all
+```
+
+Inspection defaults to five physical data rows per source. `--limit N` bounds
+rows after the header, including empty/cancelled rows; ignored empty rows do not
+cause replacement reads. The script prints only each source key and its active
+and cancelled counts, continues to later sources after a failure, and exits
+nonzero if any source fails. `--all` explicitly reads the full configured tabs.
+It needs no database or Jotform credentials. Run
+`npx tsc --noEmit -p tsconfig.sheets.json`, lint and build for type/application
+checks after installing dependencies and generating the Prisma types.
+
+`SHEET_SOURCES` contains the spreadsheet and tab IDs from the client notes.
+All four sources use the `Submission Date` header. The separate MOR referral
+`Date` column and its unlabeled first column are not used.
+
+The referral cancellation color is configured as `#ffff00` and checked against
+the effective background of the Submission ID cell only. Effective styles,
+theme colors and legacy RGB fills are supported; cancelled rows remain in the
+result. Confirm the configured color against a real cancelled referral with
+`npm run inspect:sheets -- --all`.
+
+Submission IDs must be plain-text digit strings. Numeric cells, formulas,
+scientific notation and already-rounded IDs are rejected with a row number;
+formatting a rounded number as text cannot restore its original ID. Blank cells
+remain `""`, internal positions are preserved, and completely empty rows are
+ignored. Missing/duplicate headers, repeated submission IDs, cell errors and
+failed requests reject the source without returning partial results. A bounded
+read checks duplicates only within its selected rows. Reads are paged, not an
+atomic snapshot; avoid editing/reordering the sheet during a read.
+
+Offline tests use fictional API responses for all four source kinds, including
+blank cells, large IDs, cancellation fills, paging, auth and safe CLI output.
+The live inspection prints only source keys and active/cancelled counts.
+
+Repeated submission IDs within a source keep the first occurrence and skip later occurrences, including across pages. Warnings identify the source, submission ID, and kept/skipped row numbers. Duplicate column headers still cause an error.
 ## Import Jotform submissions
 
 `lib/jotform/forms.ts` configures the four approved forms, locations and source
