@@ -14,6 +14,7 @@
     "test:referral": "node --test tests/normalize-referral.test.mjs",
     "import:jotform": "node scripts/run-jotform-import.mjs import",
     "test:jotform:import": "node --test tests/import-submissions.test.mjs",
+    "test:sync:submission": "node --test tests/sync-submission.test.mjs",
     "check:jotform:import": "node scripts/run-jotform-import.mjs check",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
@@ -31,7 +32,13 @@
     "test:normalize:inventory": "node --test tests/normalize-inventory.test.mjs",
     "test:save:submission": "node --test tests/save-submission.test.mjs",
     "test:save:submission:integration": "node --test tests/save-submission.integration.test.mjs",
-    "import:starting-inventory": "node --conditions=react-server --import tsx scripts/import-starting-inventory.ts"
+    "import:starting-inventory": "node --conditions=react-server --import tsx scripts/import-starting-inventory.ts",
+    "test:sheets:reader": "node --test tests/read-sheet.test.mjs",
+    "verify:sheet-imports": "node --no-warnings --loader ./scripts/lib/sheet-ts-loader.mjs scripts/verify-sheet-imports.ts",
+    "test:sheets": "node --no-warnings --loader ./scripts/lib/sheet-ts-loader.mjs --test tests/normalize-sheet-row.test.mjs tests/sheet-csv.test.mjs",
+    "inspect:sheets": "node --import tsx scripts/inspect-sheets.ts",
+    "sync:sheets": "node --import tsx scripts/sync-sheets.ts",
+    "test:sync:sheets": "node --import tsx --test tests/sync-sheets.test.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",

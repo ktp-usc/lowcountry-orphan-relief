@@ -16,6 +16,7 @@
     "159": { "type": "control_radio", "text": "Diapers or Pullups?", "name": "diapersOrPullups", "answer": "Pull Ups" },
     "83": { "type": "control_radio", "text": "School", "name": "school", "answer": "Middle/High School Bookbag & Supplies" },
     "171": { "type": "control_radio", "text": "School Uniform Bottoms", "name": "uniformBottoms", "answer": "Yes" },
+    "105": { "type": "control_radio", "text": "Female Bottoms Type", "name": "femaleBottomsType", "answer": "Child/Baby" },
     "184": { "type": "control_checkbox", "text": "School Uniform Bottom Color (Select all options)", "name": "uniformBottomColor", "answer": ["Khaki", "Navy"] }
   }
 }

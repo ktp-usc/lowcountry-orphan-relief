@@ -69,6 +69,8 @@ export type ReferralSupply = keyof typeof defaultQuantities;
 export type NormalizeReferralOptions = {
   /** Positive whole units per selected request; diapers/pull-ups are packs. */
   quantities?: Partial<Record<ReferralSupply, number>>;
+  /** Reject child pajama requests when the infant sleeper decision cannot be evaluated. */
+  requireAgeForChildPajamas?: boolean;
 };
 
 /** Same property names and value types as KAN-16's normalization result. */
@@ -196,34 +198,103 @@ export function normalizeReferralSubmission(
   };
   const add = (itemCode: string, supply: ReferralSupply) => addUnits(itemCode, quantities[supply]);
 
-  for (const clothing of form.clothing) {
-    if (!selected(clothing.fieldId)) continue;
+  const clothingPrefix = (clothing: ClothingRequest, requestedItem: string, requestFieldId: string): string => {
     let typeFieldId = clothing.femaleTypeFieldId;
     let adultPrefix = "WOMENS";
     if (clothing.maleTypeFieldId) {
       const sex = answer(answers, form.sexFieldId);
       if (sex !== "male" && sex !== "female") {
-        throw new Error(`A clothing selection is required for requested supply field ${clothing.fieldId}.`);
+        throw new Error(`A clothing selection is required for requested supply field ${requestFieldId} (${requestedItem}).`);
       }
       if (sex === "male") { typeFieldId = clothing.maleTypeFieldId; adultPrefix = "MENS"; }
     }
     const type = answer(answers, typeFieldId);
     if (type !== "adult" && type !== "child/baby") {
-      throw new Error(`An adult or child/baby selection is required for requested supply field ${clothing.fieldId}.`);
+      throw new Error(`An adult or child/baby selection is required for requested supply field ${requestFieldId} (${requestedItem}).`);
     }
-    const itemCode = `${type === "adult" ? adultPrefix : "CHILDRENS"}_${clothing.category}`;
+    return type === "adult" ? adultPrefix : "CHILDRENS";
+  };
+  const sharedPrefix = (category: ClothingCategory, requestedItem: string, requestFieldId: string): string => {
+    const clothing = form.clothing.find((entry) => entry.category === category);
+    if (!clothing) throw new Error(`Missing classification configuration for ${requestedItem}.`);
+    return clothingPrefix(clothing, requestedItem, requestFieldId);
+  };
+  const socksPrefix = (): string => {
+    const sex = answer(answers, form.sexFieldId);
+    if (sex !== "male" && sex !== "female") {
+      throw new Error(
+          `A clothing selection is required for requested supply field ${form.socksFieldId} (SOCKS).`,
+      );
+    }
+
+    const shoes = form.clothing.find((entry) => entry.category === "SHOES");
+    if (!shoes) {
+      throw new Error("Missing classification configuration for SOCKS.");
+    }
+
+    const shoeTypeFieldId =
+        sex === "male" ? shoes.maleTypeFieldId : shoes.femaleTypeFieldId;
+
+    // Prefer shoe classification, even when shoes weren't requested.
+    // A nonblank but invalid shoe type must still produce an error.
+    if (shoeTypeFieldId && answer(answers, shoeTypeFieldId) !== "") {
+      return clothingPrefix(shoes, "SOCKS", form.socksFieldId);
+    }
+
+    // With no shoe classification, use other requested clothing only.
+    const prefixes = new Set<string>();
+
+    for (const clothing of form.clothing) {
+      if (clothing.category === "SHOES" || !selected(clothing.fieldId)) {
+        continue;
+      }
+
+      const typeFieldId =
+          sex === "male"
+              ? clothing.maleTypeFieldId
+              : clothing.femaleTypeFieldId;
+
+      if (!typeFieldId || answer(answers, typeFieldId) === "") {
+        continue;
+      }
+
+      prefixes.add(
+          clothingPrefix(clothing, "SOCKS", form.socksFieldId),
+      );
+    }
+
+    if (prefixes.size !== 1) {
+      throw new Error(
+          `A consistent adult or child/baby selection is required for requested supply field ${form.socksFieldId} (SOCKS).`,
+      );
+    }
+
+    return [...prefixes][0];
+  };
+
+  for (const clothing of form.clothing) {
+    if (!selected(clothing.fieldId)) continue;
+    const prefix = clothingPrefix(clothing, clothing.category, clothing.fieldId);
+    const itemCode = `${prefix}_${clothing.category}`;
     add(itemCode, clothing.category);
-    if (clothing.category === "PAJAMAS" && type === "child/baby" && isNineMonthsOrYounger(answer(answers, form.ageFieldId))) {
+    if (clothing.category === "PAJAMAS" && prefix === "CHILDRENS" && options.requireAgeForChildPajamas) {
+      try {
+        toiletryCode(answer(answers, form.ageFieldId));
+      } catch {
+        throw new Error("A valid age selection is required for the requested child pajama sleeper rule.");
+      }
+    }
+    if (clothing.category === "PAJAMAS" && prefix === "CHILDRENS" && isNineMonthsOrYounger(answer(answers, form.ageFieldId))) {
       // Client rule: selected child/baby pajamas include 3 additional sleepers for 9 months and younger.
       addUnits(itemCode, 3);
     }
   }
 
-  // These referral questions have no adult/child selector. Use the children's
-  // IRS categories, counting uniforms as additional tops/bottoms, not colors.
-  if (selected(form.socksFieldId)) add("CHILDRENS_SOCKS", "SOCKS");
-  if (selected(form.uniformTopsFieldId)) add("CHILDRENS_TOPS", "UNIFORM_TOPS");
-  if (selected(form.uniformBottomsFieldId)) add("CHILDRENS_BOTTOMS", "UNIFORM_BOTTOMS");
+  if (selected(form.socksFieldId)) {
+    add(`${socksPrefix()}_SOCKS`, "SOCKS");
+  }
+  if (selected(form.uniformTopsFieldId)) add(`${sharedPrefix("TOPS", "UNIFORM_TOPS", form.uniformTopsFieldId)}_TOPS`, "UNIFORM_TOPS");
+  if (selected(form.uniformBottomsFieldId)) add(`${sharedPrefix("BOTTOMS", "UNIFORM_BOTTOMS", form.uniformBottomsFieldId)}_BOTTOMS`, "UNIFORM_BOTTOMS");
   if (selected(form.wipesFieldId)) add("WIPES", "WIPES");
   if (selected(form.toiletriesFieldId)) add(toiletryCode(answer(answers, form.ageFieldId)), "TOILETRIES");
 

@@ -215,7 +215,7 @@ test("every producible item code exists in the real IRS seed catalogue", () => {
       }
     }
   }
-  assert.equal(emitted.size, 31);
+  assert.equal(emitted.size, 33);
 });
 
 test("selected requests without classification reject without revealing answers", () => {
@@ -227,6 +227,50 @@ test("selected requests without classification reject without revealing answers"
   assert.throws(() => activities(raw({ "85": "Yes" })), /valid age/);
   assert.throws(() => activities(raw({ "85": "Yes", "158": "19 years" })), /valid age/);
 });
+
+for (const formId of [lor, mor]) {
+  for (const [sex, shoeField, topField, bottomField, adultPrefix] of [
+    ["Female", "142", "93", "105", "WOMENS"],
+    ["Male", "141", "90", "104", "MENS"],
+  ]) {
+    for (const [type, prefix] of [["Adult", adultPrefix], ["Child/Baby", "CHILDRENS"]]) {
+      test(`${formId}: ${sex} ${type} shared classifications work without base items`, () => {
+        const data = raw({
+          "17": sex, "147": "Yes", [shoeField]: type,
+          "169": "Yes", [topField]: type, "171": "Yes", [bottomField]: type,
+          "133": "Yes", [sex === "Male" ? "134" : "135"]: type,
+        }, formId);
+        assert.deepEqual(sorted(activities(data)), withBaseline([
+          activity(`${prefix}_SOCKS`, 1), activity(`${prefix}_TOPS`, 2),
+          activity(`${prefix}_BOTTOMS`, 2), activity(`${prefix}_UNDERWEAR`, 1),
+        ]));
+      });
+    }
+  }
+  test(`${formId}: shared item groups can use different classifications`, () => {
+    const data = raw({
+      "17": "Female", "147": "Yes", "142": "Adult",
+      "169": "Yes", "93": "Child/Baby", "171": "Yes", "105": "Adult",
+    }, formId);
+    assert.deepEqual(sorted(activities(data)), withBaseline([
+      activity("WOMENS_SOCKS", 1), activity("CHILDRENS_TOPS", 2), activity("WOMENS_BOTTOMS", 2),
+    ]));
+  });
+  for (const [request, field, category] of [
+    ["147", "141", "SOCKS"], ["169", "90", "UNIFORM_TOPS"], ["171", "104", "UNIFORM_BOTTOMS"],
+  ]) {
+    test(`${formId}: ${category} requires its shared classification`, () => {
+      for (const type of ["", "PRIVATE-ANSWER"]) {
+        assert.throws(() => activities(raw({ "17": "Male", [request]: "Yes", [field]: type }, formId)), (error) => {
+          assert.match(error.message, new RegExp(category));
+          assert.equal(error.message.includes("PRIVATE-ANSWER"), false);
+          return true;
+        });
+      }
+      assert.deepEqual(sorted(activities(raw({ "17": "Male", [request]: "No", [field]: "" }, formId))), withBaseline());
+    });
+  }
+}
 
 test("only allowlisted answer payloads are read, and personal information never leaves the function", () => {
   for (const formId of [lor, mor]) {
@@ -334,3 +378,59 @@ test("host timezone does not change parsed account timestamps", () => {
     assert.equal(result.stdout, "2026-07-01T16:00:00.000Z");
   }
 });
+
+for (const formId of [lor, mor]) {
+  test(`${formId}: socks fall back to requested clothing`, () => {
+    for (const [sex, typeField, type, expected] of [
+      ["Female", "93", "Child/Baby", "CHILDRENS_SOCKS"],
+      ["Female", "93", "Adult", "WOMENS_SOCKS"],
+      ["Male", "90", "Adult", "MENS_SOCKS"],
+    ]) {
+      const result = activities(raw({
+        "17": sex,
+        "147": "Yes",
+        "140": "No",
+        "88": "Yes",
+        [typeField]: type,
+      }, formId));
+
+      assert.deepEqual(
+          result.find((entry) => entry.itemCode === expected),
+          activity(expected, 1),
+      );
+    }
+  });
+
+  test(`${formId}: shoe classification takes priority for socks`, () => {
+    const result = activities(raw({
+      "17": "Female",
+      "147": "Yes",
+      "142": "Adult",
+      "88": "Yes",
+      "93": "Child/Baby",
+    }, formId));
+
+    assert.deepEqual(
+        result.find((entry) => entry.itemCode === "WOMENS_SOCKS"),
+        activity("WOMENS_SOCKS", 1),
+    );
+  });
+
+  test(`${formId}: socks reject conflicting or unavailable classifications`, () => {
+    for (const fields of [
+      {},
+      { "88": "No", "93": "Adult" },
+      { "88": "Yes", "93": "Adult", "103": "Yes", "105": "Child/Baby" },
+      { "142": "INVALID", "88": "Yes", "93": "Child/Baby" },
+    ]) {
+      assert.throws(
+          () => activities(raw({
+            "17": "Female",
+            "147": "Yes",
+            ...fields,
+          }, formId)),
+          /SOCKS/,
+      );
+    }
+  });
+}

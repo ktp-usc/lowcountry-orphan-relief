@@ -1,0 +1,1015 @@
+{
+  "description": "Entirely fictional Sheets API responses. Tab IDs, non-MOR date headers, yellow color and answers are sample assumptions, not verified client data.",
+  "sources": [
+    {
+      "source": {
+        "key": "lor-inventory",
+        "spreadsheetId": "1Xb92CED0YS0wHgd5a1jBKHTYrkZaA6gP",
+        "tabId": 101,
+        "jotformFormId": "241895593214161",
+        "location": "LOWCOUNTRY",
+        "sourceType": "INVENTORY",
+        "submissionIdHeader": "Submission ID",
+        "submissionDateHeader": "Submission Date"
+      },
+      "idIndex": 6,
+      "headerResponse": {
+        "spreadsheetId": "1Xb92CED0YS0wHgd5a1jBKHTYrkZaA6gP",
+        "sheets": [
+          {
+            "properties": {
+              "sheetId": 101,
+              "gridProperties": {
+                "rowCount": 6,
+                "columnCount": 9
+              }
+            },
+            "data": [
+              {
+                "rowData": [
+                  {
+                    "values": [
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Submission Date"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Submission Date"
+                        },
+                        "formattedValue": "Submission Date"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Diapers"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Diapers"
+                        },
+                        "formattedValue": "Diapers"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Pull-Ups"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Pull-Ups"
+                        },
+                        "formattedValue": "Pull-Ups"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Wipes"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Wipes"
+                        },
+                        "formattedValue": "Wipes"
+                      },
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Books"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Books"
+                        },
+                        "formattedValue": "Books"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Submission ID"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Submission ID"
+                        },
+                        "formattedValue": "Submission ID"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Fictional private field"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Fictional private field"
+                        },
+                        "formattedValue": "Fictional private field"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Men's Tops"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Men's Tops"
+                        },
+                        "formattedValue": "Men's Tops"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "dataResponse": {
+        "spreadsheetId": "1Xb92CED0YS0wHgd5a1jBKHTYrkZaA6gP",
+        "sheets": [
+          {
+            "properties": {
+              "sheetId": 101,
+              "gridProperties": {
+                "rowCount": 6,
+                "columnCount": 9
+              }
+            },
+            "data": [
+              {
+                "startRow": 1,
+                "rowData": [
+                  {
+                    "values": [
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "11/11/2026 10:00:00"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "11/11/2026 10:00:00"
+                        },
+                        "formattedValue": "11/11/2026 10:00:00"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 0
+                        },
+                        "effectiveValue": {
+                          "numberValue": 0
+                        },
+                        "formattedValue": "0"
+                      },
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 3
+                        },
+                        "effectiveValue": {
+                          "numberValue": 3
+                        },
+                        "formattedValue": "3"
+                      },
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 2
+                        },
+                        "effectiveValue": {
+                          "numberValue": 2
+                        },
+                        "formattedValue": "2"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "00670000000000000001"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "00670000000000000001"
+                        },
+                        "formattedValue": "00670000000000000001"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "PRIVATE_FICTIONAL_ANSWER"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "PRIVATE_FICTIONAL_ANSWER"
+                        },
+                        "formattedValue": "PRIVATE_FICTIONAL_ANSWER"
+                      }
+                    ]
+                  },
+                  {},
+                  {
+                    "values": [
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "11/11/2026 10:00:00"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "11/11/2026 10:00:00"
+                        },
+                        "formattedValue": "11/11/2026 10:00:00"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 0
+                        },
+                        "effectiveValue": {
+                          "numberValue": 0
+                        },
+                        "formattedValue": "0"
+                      },
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 3
+                        },
+                        "effectiveValue": {
+                          "numberValue": 3
+                        },
+                        "formattedValue": "3"
+                      },
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 2
+                        },
+                        "effectiveValue": {
+                          "numberValue": 2
+                        },
+                        "formattedValue": "2"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "00670000000000000002"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "00670000000000000002"
+                        },
+                        "formattedValue": "00670000000000000002"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "PRIVATE_FICTIONAL_ANSWER"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "PRIVATE_FICTIONAL_ANSWER"
+                        },
+                        "formattedValue": "PRIVATE_FICTIONAL_ANSWER"
+                      }
+                    ]
+                  },
+                  {
+                    "values": [
+                      {}
+                    ]
+                  },
+                  {}
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": {
+        "key": "mor-inventory",
+        "spreadsheetId": "1oa7mA59lDbmHNvf--z0lqd0U7chx6Bmh",
+        "tabId": 102,
+        "jotformFormId": "250054265404145",
+        "location": "MIDLANDS",
+        "sourceType": "INVENTORY",
+        "submissionIdHeader": "Submission ID",
+        "submissionDateHeader": "Submission Date"
+      },
+      "idIndex": 6,
+      "headerResponse": {
+        "spreadsheetId": "1oa7mA59lDbmHNvf--z0lqd0U7chx6Bmh",
+        "sheets": [
+          {
+            "properties": {
+              "sheetId": 102,
+              "gridProperties": {
+                "rowCount": 6,
+                "columnCount": 9
+              }
+            },
+            "data": [
+              {
+                "rowData": [
+                  {
+                    "values": [
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Submission Date"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Submission Date"
+                        },
+                        "formattedValue": "Submission Date"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Diapers"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Diapers"
+                        },
+                        "formattedValue": "Diapers"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Pull-Ups"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Pull-Ups"
+                        },
+                        "formattedValue": "Pull-Ups"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Wipes"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Wipes"
+                        },
+                        "formattedValue": "Wipes"
+                      },
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Books"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Books"
+                        },
+                        "formattedValue": "Books"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Submission ID"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Submission ID"
+                        },
+                        "formattedValue": "Submission ID"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Fictional private field"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Fictional private field"
+                        },
+                        "formattedValue": "Fictional private field"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Men's Tops"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Men's Tops"
+                        },
+                        "formattedValue": "Men's Tops"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "dataResponse": {
+        "spreadsheetId": "1oa7mA59lDbmHNvf--z0lqd0U7chx6Bmh",
+        "sheets": [
+          {
+            "properties": {
+              "sheetId": 102,
+              "gridProperties": {
+                "rowCount": 6,
+                "columnCount": 9
+              }
+            },
+            "data": [
+              {
+                "startRow": 1,
+                "rowData": [
+                  {
+                    "values": [
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "11/11/2026 10:00:00"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "11/11/2026 10:00:00"
+                        },
+                        "formattedValue": "11/11/2026 10:00:00"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 0
+                        },
+                        "effectiveValue": {
+                          "numberValue": 0
+                        },
+                        "formattedValue": "0"
+                      },
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 3
+                        },
+                        "effectiveValue": {
+                          "numberValue": 3
+                        },
+                        "formattedValue": "3"
+                      },
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 2
+                        },
+                        "effectiveValue": {
+                          "numberValue": 2
+                        },
+                        "formattedValue": "2"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "006700000000000000011"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "006700000000000000011"
+                        },
+                        "formattedValue": "006700000000000000011"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "PRIVATE_FICTIONAL_ANSWER"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "PRIVATE_FICTIONAL_ANSWER"
+                        },
+                        "formattedValue": "PRIVATE_FICTIONAL_ANSWER"
+                      }
+                    ]
+                  },
+                  {},
+                  {
+                    "values": [
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "11/11/2026 10:00:00"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "11/11/2026 10:00:00"
+                        },
+                        "formattedValue": "11/11/2026 10:00:00"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 0
+                        },
+                        "effectiveValue": {
+                          "numberValue": 0
+                        },
+                        "formattedValue": "0"
+                      },
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 3
+                        },
+                        "effectiveValue": {
+                          "numberValue": 3
+                        },
+                        "formattedValue": "3"
+                      },
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 2
+                        },
+                        "effectiveValue": {
+                          "numberValue": 2
+                        },
+                        "formattedValue": "2"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "006700000000000000012"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "006700000000000000012"
+                        },
+                        "formattedValue": "006700000000000000012"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "PRIVATE_FICTIONAL_ANSWER"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "PRIVATE_FICTIONAL_ANSWER"
+                        },
+                        "formattedValue": "PRIVATE_FICTIONAL_ANSWER"
+                      }
+                    ]
+                  },
+                  {
+                    "values": [
+                      {}
+                    ]
+                  },
+                  {}
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": {
+        "key": "lor-referral",
+        "spreadsheetId": "1cNks4g6h9UIO_OekcnEdt_TfBrtz0mLx",
+        "tabId": 103,
+        "jotformFormId": "261498369429070",
+        "location": "LOWCOUNTRY",
+        "sourceType": "REFERRAL",
+        "submissionIdHeader": "Submission ID",
+        "submissionDateHeader": "Submission Date"
+      },
+      "idIndex": 6,
+      "headerResponse": {
+        "spreadsheetId": "1cNks4g6h9UIO_OekcnEdt_TfBrtz0mLx",
+        "sheets": [
+          {
+            "properties": {
+              "sheetId": 103,
+              "gridProperties": {
+                "rowCount": 6,
+                "columnCount": 9
+              }
+            },
+            "data": [
+              {
+                "rowData": [
+                  {
+                    "values": [
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Submission Date"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Submission Date"
+                        },
+                        "formattedValue": "Submission Date"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Diapers"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Diapers"
+                        },
+                        "formattedValue": "Diapers"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Pull-Ups"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Pull-Ups"
+                        },
+                        "formattedValue": "Pull-Ups"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Wipes"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Wipes"
+                        },
+                        "formattedValue": "Wipes"
+                      },
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Books"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Books"
+                        },
+                        "formattedValue": "Books"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Submission ID"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Submission ID"
+                        },
+                        "formattedValue": "Submission ID"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Fictional private field"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Fictional private field"
+                        },
+                        "formattedValue": "Fictional private field"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Men's Tops"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Men's Tops"
+                        },
+                        "formattedValue": "Men's Tops"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "dataResponse": {
+        "spreadsheetId": "1cNks4g6h9UIO_OekcnEdt_TfBrtz0mLx",
+        "sheets": [
+          {
+            "properties": {
+              "sheetId": 103,
+              "gridProperties": {
+                "rowCount": 6,
+                "columnCount": 9
+              }
+            },
+            "data": [
+              {
+                "startRow": 1,
+                "rowData": [
+                  {
+                    "values": [
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "11/11/2026 10:00:00"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "11/11/2026 10:00:00"
+                        },
+                        "formattedValue": "11/11/2026 10:00:00"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 0
+                        },
+                        "effectiveValue": {
+                          "numberValue": 0
+                        },
+                        "formattedValue": "0"
+                      },
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 3
+                        },
+                        "effectiveValue": {
+                          "numberValue": 3
+                        },
+                        "formattedValue": "3"
+                      },
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 2
+                        },
+                        "effectiveValue": {
+                          "numberValue": 2
+                        },
+                        "formattedValue": "2"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "006700000000000000021"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "006700000000000000021"
+                        },
+                        "formattedValue": "006700000000000000021"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "PRIVATE_FICTIONAL_ANSWER"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "PRIVATE_FICTIONAL_ANSWER"
+                        },
+                        "formattedValue": "PRIVATE_FICTIONAL_ANSWER"
+                      }
+                    ]
+                  },
+                  {},
+                  {
+                    "values": [
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "11/11/2026 10:00:00"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "11/11/2026 10:00:00"
+                        },
+                        "formattedValue": "11/11/2026 10:00:00"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 0
+                        },
+                        "effectiveValue": {
+                          "numberValue": 0
+                        },
+                        "formattedValue": "0"
+                      },
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 3
+                        },
+                        "effectiveValue": {
+                          "numberValue": 3
+                        },
+                        "formattedValue": "3"
+                      },
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "numberValue": 2
+                        },
+                        "effectiveValue": {
+                          "numberValue": 2
+                        },
+                        "formattedValue": "2"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "006700000000000000022"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "006700000000000000022"
+                        },
+                        "formattedValue": "006700000000000000022",
+                        "effectiveFormat": {
+                          "backgroundColorStyle": {
+                            "rgbColor": {
+                              "red": 1,
+                              "green": 1
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "PRIVATE_FICTIONAL_ANSWER"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "PRIVATE_FICTIONAL_ANSWER"
+                        },
+                        "formattedValue": "PRIVATE_FICTIONAL_ANSWER"
+                      }
+                    ]
+                  },
+                  {
+                    "values": [
+                      {}
+                    ]
+                  },
+                  {}
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "source": {
+        "key": "mor-referral",
+        "spreadsheetId": "14m2U-YXLsnUcQTRIXhzOtbwlT7Wjq5Wh",
+        "tabId": 104,
+        "jotformFormId": "261526295444158",
+        "location": "MIDLANDS",
+        "sourceType": "REFERRAL",
+        "submissionIdHeader": "Submission ID",
+        "submissionDateHeader": "Submission Date"
+      },
+      "idIndex": 4,
+      "headerResponse": {
+        "spreadsheetId": "14m2U-YXLsnUcQTRIXhzOtbwlT7Wjq5Wh",
+        "sheets": [
+          {
+            "properties": {
+              "sheetId": 104,
+              "gridProperties": {
+                "rowCount": 6,
+                "columnCount": 7
+              }
+            },
+            "data": [
+              {
+                "rowData": [
+                  {
+                    "values": [
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Submission Date"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Submission Date"
+                        },
+                        "formattedValue": "Date"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Tops"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Tops"
+                        },
+                        "formattedValue": "Tops"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Wipes"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Wipes"
+                        },
+                        "formattedValue": "Wipes"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Submission ID"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Submission ID"
+                        },
+                        "formattedValue": "Submission ID"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Fictional private field"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Fictional private field"
+                        },
+                        "formattedValue": "Fictional private field"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "School Supplies"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "School Supplies"
+                        },
+                        "formattedValue": "School Supplies"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "dataResponse": {
+        "spreadsheetId": "14m2U-YXLsnUcQTRIXhzOtbwlT7Wjq5Wh",
+        "sheets": [
+          {
+            "properties": {
+              "sheetId": 104,
+              "gridProperties": {
+                "rowCount": 6,
+                "columnCount": 7
+              }
+            },
+            "data": [
+              {
+                "startRow": 1,
+                "rowData": [
+                  {
+                    "values": [
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "UNLABELED_TIMESTAMP_MUST_NOT_BECOME_DATE"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "UNLABELED_TIMESTAMP_MUST_NOT_BECOME_DATE"
+                        },
+                        "formattedValue": "UNLABELED_TIMESTAMP_MUST_NOT_BECOME_DATE"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "11/10/2026"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "11/10/2026"
+                        },
+                        "formattedValue": "11/10/2026"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Yes"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Yes"
+                        },
+                        "formattedValue": "Yes"
+                      },
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "006700000000000000031"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "006700000000000000031"
+                        },
+                        "formattedValue": "006700000000000000031"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "PRIVATE_FICTIONAL_ANSWER"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "PRIVATE_FICTIONAL_ANSWER"
+                        },
+                        "formattedValue": "PRIVATE_FICTIONAL_ANSWER"
+                      }
+                    ]
+                  },
+                  {},
+                  {
+                    "values": [
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "UNLABELED_TIMESTAMP_MUST_NOT_BECOME_DATE"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "UNLABELED_TIMESTAMP_MUST_NOT_BECOME_DATE"
+                        },
+                        "formattedValue": "UNLABELED_TIMESTAMP_MUST_NOT_BECOME_DATE"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "11/10/2026"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "11/10/2026"
+                        },
+                        "formattedValue": "11/10/2026"
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "Yes"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "Yes"
+                        },
+                        "formattedValue": "Yes"
+                      },
+                      {},
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "006700000000000000032"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "006700000000000000032"
+                        },
+                        "formattedValue": "006700000000000000032",
+                        "effectiveFormat": {
+                          "backgroundColorStyle": {
+                            "rgbColor": {
+                              "red": 1,
+                              "green": 1
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "userEnteredValue": {
+                          "stringValue": "PRIVATE_FICTIONAL_ANSWER"
+                        },
+                        "effectiveValue": {
+                          "stringValue": "PRIVATE_FICTIONAL_ANSWER"
+                        },
+                        "formattedValue": "PRIVATE_FICTIONAL_ANSWER"
+                      }
+                    ]
+                  },
+                  {
+                    "values": [
+                      {}
+                    ]
+                  },
+                  {}
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
