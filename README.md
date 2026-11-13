@@ -268,11 +268,7 @@ Offline tests use fictional API responses for all four source kinds, including
 blank cells, large IDs, cancellation fills, paging, auth and safe CLI output.
 The live inspection prints only source keys and active/cancelled counts.
 
-Live verification on November 12, 2026 found a duplicate submission ID in the
-LOR inventory sheet at rows 5931 and 5932. The full inspection exits nonzero
-and does not report a complete LOR inventory count until the duplicate is
-resolved in the source.
-
+Repeated submission IDs within a source keep the first occurrence and skip later occurrences, including across pages. Warnings identify the source, submission ID, and kept/skipped row numbers. Duplicate column headers still cause an error.
 ## Import Jotform submissions
 
 `lib/jotform/forms.ts` configures the four approved forms, locations and source

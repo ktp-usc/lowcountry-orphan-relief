@@ -194,8 +194,16 @@ export function createSheetReader(overrides: Partial<ReaderDependencies> = {}) {
           || !isRecord(effective) || effective.stringValue !== entered.stringValue) {
           throw new SheetReadError(`Submission ID at row ${rowNumber} must be exact plain text digits. Numeric, formula, scientific-notation or rounded IDs are not accepted; restore IDs from the original source.`);
         }
-        const id = entered.stringValue, previous = seenIds.get(id);
-        if (previous !== undefined) throw new SheetReadError(`Duplicate submission ID at rows ${previous} and ${rowNumber}.`);
+        const id = entered.stringValue;
+        const previous = seenIds.get(id);
+
+        if (previous !== undefined) {
+          console.warn(
+              `${source.key}: duplicate submission ID ${id}; kept row ${previous}, skipped row ${rowNumber}.`,
+          );
+          continue;
+        }
+
         seenIds.set(id, rowNumber);
         const values = Object.fromEntries(selectedColumns.map(([index, header]) => [
           header, cellText(cells.get(index), rowNumber, index),
