@@ -378,3 +378,59 @@ test("host timezone does not change parsed account timestamps", () => {
     assert.equal(result.stdout, "2026-07-01T16:00:00.000Z");
   }
 });
+
+for (const formId of [lor, mor]) {
+  test(`${formId}: socks fall back to requested clothing`, () => {
+    for (const [sex, typeField, type, expected] of [
+      ["Female", "93", "Child/Baby", "CHILDRENS_SOCKS"],
+      ["Female", "93", "Adult", "WOMENS_SOCKS"],
+      ["Male", "90", "Adult", "MENS_SOCKS"],
+    ]) {
+      const result = activities(raw({
+        "17": sex,
+        "147": "Yes",
+        "140": "No",
+        "88": "Yes",
+        [typeField]: type,
+      }, formId));
+
+      assert.deepEqual(
+          result.find((entry) => entry.itemCode === expected),
+          activity(expected, 1),
+      );
+    }
+  });
+
+  test(`${formId}: shoe classification takes priority for socks`, () => {
+    const result = activities(raw({
+      "17": "Female",
+      "147": "Yes",
+      "142": "Adult",
+      "88": "Yes",
+      "93": "Child/Baby",
+    }, formId));
+
+    assert.deepEqual(
+        result.find((entry) => entry.itemCode === "WOMENS_SOCKS"),
+        activity("WOMENS_SOCKS", 1),
+    );
+  });
+
+  test(`${formId}: socks reject conflicting or unavailable classifications`, () => {
+    for (const fields of [
+      {},
+      { "88": "No", "93": "Adult" },
+      { "88": "Yes", "93": "Adult", "103": "Yes", "105": "Child/Baby" },
+      { "142": "INVALID", "88": "Yes", "93": "Child/Baby" },
+    ]) {
+      assert.throws(
+          () => activities(raw({
+            "17": "Female",
+            "147": "Yes",
+            ...fields,
+          }, formId)),
+          /SOCKS/,
+      );
+    }
+  });
+}

@@ -493,3 +493,22 @@ test("reader imports do not execute a database, normalizer or Jotform API depend
     assert.equal(/from\s+["'][^"']*(?:prisma|fetch-submissions|import-submissions|save-submission|normalize)[^"']*["']/.test(source), false);
   }
 });
+
+test("referral readers include available optional size columns with original headers", async () => {
+  const header = " adult female dresses size ";
+  const h = harness(fixtures[3], (data) => {
+    data.headerResponse.sheets[0].data[0].rowData[0].values.push(text(header));
+    data.headerResponse.sheets[0].properties.gridProperties.columnCount++;
+    data.dataResponse.sheets[0].properties.gridProperties.columnCount++;
+    for (const row of data.dataResponse.sheets[0].data[0].rowData) {
+      const value = row.values.some((cell) => cell.effectiveValue?.stringValue) ? "M" : "";
+      const index = data.headerResponse.sheets[0].properties.gridProperties.columnCount - 1;
+      while (row.values.length <= index) row.values.push(text(""));
+      row.values[index] = text(value);
+    }
+  });
+  const result = await h.read();
+  assert.equal(result.rows[0].values[header], "M");
+  assert.equal(Object.hasOwn(result.rows[0].values, "Adult Male Tops Size"), false);
+  assert.equal(Object.hasOwn(result.rows[0].values, "Name"), false);
+});

@@ -169,6 +169,17 @@ export function createSheetReader(overrides: Partial<ReaderDependencies> = {}) {
       const column = required(header);
       selected.set(column.index, column.header);
     }
+    // Size columns support classification fallbacks when available.
+    for (const header of mapping.extraHeaders ?? []) {
+      const column = columns.find(
+        (entry) =>
+          entry.header.trim().toLowerCase() === header.toLowerCase(),
+      );
+
+      if (column) {
+        selected.set(column.index, column.header);
+      }
+    }
     const selectedColumns = [...selected].sort(([a], [b]) => a - b);
     const selectedIndexes = selectedColumns.map(([index]) => index);
     const columnRanges: { startColumnIndex: number; endColumnIndex: number }[] = [];

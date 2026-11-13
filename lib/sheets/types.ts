@@ -47,7 +47,6 @@ export type SyncSubmissionResult = {
 export type SyncSheetsOptions = {
   limitPerSource?: number;
 };
-
 export type SyncSheetsSummary = {
   created: number;
   updated: number;

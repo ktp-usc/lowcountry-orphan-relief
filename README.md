@@ -229,6 +229,22 @@ It needs no database or Jotform credentials. Run
 `npx tsc --noEmit -p tsconfig.sheets.json`, lint and build for type/application
 checks after installing dependencies and generating the Prisma types.
 
+Synchronize the mapped rows into the inventory database with an explicit scope:
+
+```bash
+npm run sync:sheets -- --limit 2
+npm run sync:sheets -- --all
+```
+
+The limit applies independently to each source; one of `--limit N` or `--all`
+is required. The sync needs the Google service-account credentials above and
+`DATABASE_URL` (or `DIRECT_URL`), but does not need a Jotform API key. It prints
+aggregate counts and safe source/row errors, continuing after a source or row
+failure. Read or normalization failures do not delete or replace existing
+records, missing rows are not treated as deletions, and yellow-highlighted
+referral rows identify cancellations. The command exits nonzero if any source
+or row fails.
+
 `SHEET_SOURCES` contains the spreadsheet and tab IDs from the client notes.
 All four sources use the `Submission Date` header. The separate MOR referral
 `Date` column and its unlabeled first column are not used.

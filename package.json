@@ -34,9 +34,11 @@
     "test:save:submission:integration": "node --test tests/save-submission.integration.test.mjs",
     "import:starting-inventory": "node --conditions=react-server --import tsx scripts/import-starting-inventory.ts",
     "test:sheets:reader": "node --test tests/read-sheet.test.mjs",
-    "inspect:sheets": "node --import tsx scripts/inspect-sheets.ts",
     "verify:sheet-imports": "node --no-warnings --loader ./scripts/lib/sheet-ts-loader.mjs scripts/verify-sheet-imports.ts",
-    "test:sheets": "node --no-warnings --loader ./scripts/lib/sheet-ts-loader.mjs --test tests/normalize-sheet-row.test.mjs tests/sheet-csv.test.mjs"
+    "test:sheets": "node --no-warnings --loader ./scripts/lib/sheet-ts-loader.mjs --test tests/normalize-sheet-row.test.mjs tests/sheet-csv.test.mjs",
+    "inspect:sheets": "node --import tsx scripts/inspect-sheets.ts",
+    "sync:sheets": "node --import tsx scripts/sync-sheets.ts",
+    "test:sync:sheets": "node --import tsx --test tests/sync-sheets.test.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.1",

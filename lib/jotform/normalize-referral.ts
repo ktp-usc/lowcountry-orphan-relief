@@ -219,6 +219,58 @@ export function normalizeReferralSubmission(
     if (!clothing) throw new Error(`Missing classification configuration for ${requestedItem}.`);
     return clothingPrefix(clothing, requestedItem, requestFieldId);
   };
+  const socksPrefix = (): string => {
+    const sex = answer(answers, form.sexFieldId);
+    if (sex !== "male" && sex !== "female") {
+      throw new Error(
+          `A clothing selection is required for requested supply field ${form.socksFieldId} (SOCKS).`,
+      );
+    }
+
+    const shoes = form.clothing.find((entry) => entry.category === "SHOES");
+    if (!shoes) {
+      throw new Error("Missing classification configuration for SOCKS.");
+    }
+
+    const shoeTypeFieldId =
+        sex === "male" ? shoes.maleTypeFieldId : shoes.femaleTypeFieldId;
+
+    // Prefer shoe classification, even when shoes weren't requested.
+    // A nonblank but invalid shoe type must still produce an error.
+    if (shoeTypeFieldId && answer(answers, shoeTypeFieldId) !== "") {
+      return clothingPrefix(shoes, "SOCKS", form.socksFieldId);
+    }
+
+    // With no shoe classification, use other requested clothing only.
+    const prefixes = new Set<string>();
+
+    for (const clothing of form.clothing) {
+      if (clothing.category === "SHOES" || !selected(clothing.fieldId)) {
+        continue;
+      }
+
+      const typeFieldId =
+          sex === "male"
+              ? clothing.maleTypeFieldId
+              : clothing.femaleTypeFieldId;
+
+      if (!typeFieldId || answer(answers, typeFieldId) === "") {
+        continue;
+      }
+
+      prefixes.add(
+          clothingPrefix(clothing, "SOCKS", form.socksFieldId),
+      );
+    }
+
+    if (prefixes.size !== 1) {
+      throw new Error(
+          `A consistent adult or child/baby selection is required for requested supply field ${form.socksFieldId} (SOCKS).`,
+      );
+    }
+
+    return [...prefixes][0];
+  };
 
   for (const clothing of form.clothing) {
     if (!selected(clothing.fieldId)) continue;
@@ -238,7 +290,9 @@ export function normalizeReferralSubmission(
     }
   }
 
-  if (selected(form.socksFieldId)) add(`${sharedPrefix("SHOES", "SOCKS", form.socksFieldId)}_SOCKS`, "SOCKS");
+  if (selected(form.socksFieldId)) {
+    add(`${socksPrefix()}_SOCKS`, "SOCKS");
+  }
   if (selected(form.uniformTopsFieldId)) add(`${sharedPrefix("TOPS", "UNIFORM_TOPS", form.uniformTopsFieldId)}_TOPS`, "UNIFORM_TOPS");
   if (selected(form.uniformBottomsFieldId)) add(`${sharedPrefix("BOTTOMS", "UNIFORM_BOTTOMS", form.uniformBottomsFieldId)}_BOTTOMS`, "UNIFORM_BOTTOMS");
   if (selected(form.wipesFieldId)) add("WIPES", "WIPES");
